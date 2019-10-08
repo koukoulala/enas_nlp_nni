@@ -9,15 +9,10 @@ This project includes code for 10 text classification tasks task. We conduct neu
 
 ## Step
 
-> 1. INSTALL NNI
-
-- ```python3 -m pip install --upgrade nni```
-
-[More information](https://github.com/microsoft/nni/blob/master/docs/en_US/Installation.md)
-
-> 2. RUN NAS
+> RUN NAS
 
 - `pip install -r requirements.txt`
+- `export CUDA_VISIBLE_DEVICES=0`
 - `cd NAS && nnictl create --config config.yml`
 
 ## Datasets
