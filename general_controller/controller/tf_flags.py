@@ -1,8 +1,8 @@
 import tensorflow as tf
-from src.utils import DEFINE_boolean
-from src.utils import DEFINE_float
-from src.utils import DEFINE_integer
-from src.utils import DEFINE_string
+from controller.utils import DEFINE_boolean
+from controller.utils import DEFINE_float
+from controller.utils import DEFINE_integer
+from controller.utils import DEFINE_string
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 
