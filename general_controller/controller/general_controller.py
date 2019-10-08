@@ -4,8 +4,8 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from src.utils import get_train_ops
-from src.common_ops import stack_lstm
+from controller.utils import get_train_ops
+from controller.common_ops import stack_lstm
 
 
 class GeneralController():
