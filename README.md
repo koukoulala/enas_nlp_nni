@@ -50,11 +50,11 @@ Finally, the derived architecture is trained from scratch with the best configur
 
 We notice that different construction orders sometimes lead to the same network architecture. 
 We put a constraint on the search space to mitigate this kind of duplication and accelerate the search procedure. 
-Concretely, layer i must select its input from previous k layers, where k is set to be a small value. 
+Concretely, layer _i_ must select its input from previous _k_ layers, where _k_ is set to be a small value. 
 In this way, we favor the BFS-style construction manner in Figure a instead of Figure b. 
-For example, if we set k = 2, the case in Figure b can be skipped because layer 4 cannot take layer 1 as input directly. 
+For example, if we set _k = 2_, the case in Figure b can be skipped because layer 4 cannot take layer 1 as input directly. 
 
-In our experiments, we set k=5 as a trade-off between expressiveness and search efficiency. 
+In our experiments, we set _k=5_ as a trade-off between expressiveness and search efficiency. 
 
 #### Figure a 
 ![avatar](./imgs/DAG_duplicate_color_a.png)
@@ -74,14 +74,56 @@ After the network structure is built, the next step is to determine the operator
 In the search space, we incorporate four categories of candidate layers which are commonly used for text representation, namely _Convolutional Layers, Recurrent Layers, Pooling Layer, and Multi-Head Self-Attention Layers_. 
 Each layer does not change the shape of input tensor, so one can freely stack more layers as long as the input shape is not modified.
 
+## ENAS_NLP_NNI structure 
+
+The structure of this project is illustrated as below<br>
+```
+.
+└── general_controller
+    └── controller
+        ├── common_ops.py
+        ├── general_controller.py
+        ├── tf_flags.py
+        └── utils.py
+    └── RL_tuner.py
+└── imgs
+└── NAS
+    └── data
+        ├── sst
+        ├── ...
+        └── tokenizer.sed
+    └── src
+        └── enasnlp
+            ├── data_utils.py
+            ├── general_child.py
+            ├── models.py
+            ├── nni_child_nlp.py
+            └── ptb.py
+        ├── common_ops.py
+        ├── nlp_flag.py
+        └── utils.py
+    ├── config.yml
+    └── run_search_arc_multi_path.sh
+```
+
+**general_controller.py:** uses LSTM layer to generate the choice of each layer sequentially according to the topological order.
+As can be seen in arcs.sh, the searched architectures are stored in the form of a pyramid. 
+The first column represents the input of current layer (k<=5); The second column represents the selected operation;
+The remaining columns represent the selected skip connections.
+
+**general_child.py:** uses NNI annotation to express the candidate layers/sub-models. 
+Since each layer has to choose a specific input, we divided each layer into two pieces, one is to choose operations and input, another one is to choose skip connections.
+
+**RL_tuner.py:** selects the corresponding operation/input/skip in NNI annotation according to the generated architectures from general_controller.py.
+
 ## Results
 
-In our experiments, we perform 12-layer neural architecture search on SST dataset and evaluate the derived architectures on both SST and SST-Binary datasets. 
+In our experiments, we perform 24-layer neural architecture search on SST dataset and evaluate the derived architectures on both SST and SST-Binary datasets. 
 We follow the pre-defined train/validation/test split of the datasets{https://nlp.stanford.edu/sentiment/code.html}. 
 The word embedding vectors are initialized by pre-trained GloVe (glove.840B.300d{https://nlp.stanford.edu/projects/glove/}) and fine-tuned during training. 
 We set batch size as 128, hidden unit dimension for each layer as 32.
 
-During search process (in NNI environment), the test result of SST is about 0.44.
+During search process (in NNI environment), the test result of SST is about **0.44**.
 The searched architectures are named as ARC-I, ARC-II and ARC-III respectively.
 We evaluate ARC-I, ARC-II and ARC-III by training them from scratch and report the average accuracy of 5 runs on the datasets.
 In addition,we evaluate the accuracy of assembling ARC-I, II and III together as a joint architecture with a linear combination layer on the top.

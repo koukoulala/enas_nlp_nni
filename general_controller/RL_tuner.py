@@ -164,27 +164,6 @@ class RLTuner(Tuner):
                 start_idx += real_layer_idx
                 real_layer_idx += 1
 
-        '''
-        for layer_id, (layer_name, info) in enumerate(self.search_space):
-            mutable_block = info['mutable_block']
-            if mutable_block not in current_config:
-                current_config[mutable_block] = dict()
-            layer_choice_idx = current_arc_code[start_idx]
-            if layer_id != 0:
-                input_start = start_idx + 1
-            else:
-                input_start = start_idx
-            inputs_idxs = current_arc_code[input_start: input_start + layer_id]
-            #print("debug2::inputs_idxs:", inputs_idxs)
-            #inputs_idxs = [idx for idx, val in enumerate(inputs_idxs) if val == 1 and idx >= len(inputs_idxs)-5]
-            inputs_idxs = [idx for idx, val in enumerate(inputs_idxs) if val == 1]
-            print("debug3:::__change", inputs_idxs)
-            current_config[mutable_block][layer_name] = dict()
-            current_config[mutable_block][layer_name]['chosen_layer'] = info['layer_choice'][layer_choice_idx]
-            current_config[mutable_block][layer_name]['chosen_inputs'] = [
-                info['optional_inputs'][ipi] for ipi in inputs_idxs]
-            start_idx += 1 + layer_id
-        '''
         # update pos and epoch
         self.pos = (self.pos + 1) % (self.child_steps + self.controller_steps)
         self.epoch += int(self.pos == 0)
