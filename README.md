@@ -54,7 +54,7 @@ Concretely, layer _i_ must select its input from previous _k_ layers, where _k_ 
 In this way, we favor the BFS-style construction manner in Figure a instead of Figure b. 
 For example, if we set _k = 2_, the case in Figure b can be skipped because layer 4 cannot take layer 1 as input directly. 
 
-In our experiments, we set _k=5_ as a trade-off between expressiveness and search efficiency. 
+In our experiments, we set **_k=5_** as a trade-off between expressiveness and search efficiency. 
 
 #### Figure a 
 ![avatar](./imgs/DAG_duplicate_color_a.png)
@@ -123,7 +123,7 @@ We follow the pre-defined train/validation/test split of the datasets{https://nl
 The word embedding vectors are initialized by pre-trained GloVe (glove.840B.300d{https://nlp.stanford.edu/projects/glove/}) and fine-tuned during training. 
 We set batch size as 128, hidden unit dimension for each layer as 32.
 
-During search process (in NNI environment), the test result of SST is about **0.44**.
+During search process (in NNI environment), the validation result of SST is about **0.44**.
 The searched architectures are named as ARC-I, ARC-II and ARC-III respectively.
 We evaluate ARC-I, ARC-II and ARC-III by training them from scratch and report the average accuracy of 5 runs on the datasets.
 In addition,we evaluate the accuracy of assembling ARC-I, II and III together as a joint architecture with a linear combination layer on the top.
