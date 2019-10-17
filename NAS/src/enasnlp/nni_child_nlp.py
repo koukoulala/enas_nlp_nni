@@ -25,15 +25,15 @@ def build_logger(log_name):
 
 logger = build_logger("nni_child_enas_nlp")
 
-def build_trial(images_train, bow_images_train, labels_train, datasets_train,
-              images, labels, datasets, embedding, num_layers, ChildClass):
+def build_trial(doc_train, bow_doc_train, labels_train, datasets_train,
+              doc, labels, datasets, embedding, num_layers, ChildClass):
   '''Build child class'''
   child_model = ChildClass(
-    images_train,
-    bow_images_train,
+    doc_train,
+    bow_doc_train,
     labels_train,
     datasets_train,
-    images,
+    doc,
     labels,
     datasets,
     embedding,
@@ -114,7 +114,7 @@ def get_child_ops(child_model):
 
 class NASTrial():
 
-  def __init__(self, images, labels, datasets, embedding):
+  def __init__(self, doc, labels, datasets, embedding):
 
     self.output_dir = os.path.join(os.getenv('NNI_OUTPUT_DIR'), '../..')
     self.file_path = os.path.join(
@@ -123,11 +123,11 @@ class NASTrial():
     self.graph = tf.Graph()
     with self.graph.as_default():
       with tf.device("/cpu:0"):
-        print(images["train"])
-        images_train = tf.placeholder(images["train"].dtype,
-                                      [None, images["train"].shape[1]], name="images_train")
-        bow_images_train = tf.placeholder(images["train_bow_ids"].dtype,
-                                          [None, images["train_bow_ids"].shape[1]], name="bow_images_train")
+        print(doc["train"])
+        doc_train = tf.placeholder(doc["train"].dtype,
+                                      [None, doc["train"].shape[1]], name="doc_train")
+        bow_doc_train = tf.placeholder(doc["train_bow_ids"].dtype,
+                                          [None, doc["train_bow_ids"].shape[1]], name="bow_doc_train")
         labels_train = tf.placeholder(labels["train"].dtype,
                                       [None], name="labels_train")
         datasets_train = tf.placeholder(datasets["train"].dtype,
@@ -136,8 +136,8 @@ class NASTrial():
         print("child_num_branches {0}".format(str(FLAGS.child_num_branches)))
 
 
-      self.child_model = build_trial(images_train, bow_images_train,
-        labels_train, datasets_train, images, labels, datasets, embedding,
+      self.child_model = build_trial(doc_train, bow_doc_train,
+        labels_train, datasets_train, doc, labels, datasets, embedding,
         FLAGS.child_num_layers, GeneralChild)
 
       self.total_data = {}
@@ -151,8 +151,8 @@ class NASTrial():
 
       self.sess = tf.train.SingularMonitoredSession(config=config)
       self.sess.run(self.child_ops["train_batch_iterator"].initializer, feed_dict={
-          images_train: images["train"],
-          bow_images_train: images["train_bow_ids"],
+          doc_train: doc["train"],
+          bow_doc_train: doc["train_bow_ids"],
           labels_train: labels["train"],
           datasets_train: datasets["train"]})
 
@@ -219,7 +219,7 @@ def main(_):
 
     if FLAGS.dataset == 'sst':
       cache = {}
-      images, labels, datasets, embedding = read_data_sst(word_id_dict, word_num_dict,
+      doc, labels, datasets, embedding = read_data_sst(word_id_dict, word_num_dict,
                                                           FLAGS.data_path, FLAGS.max_input_length,
                                                           FLAGS.embedding_model,
                                                           FLAGS.min_count, FLAGS.train_ratio, FLAGS.valid_ratio,
@@ -227,7 +227,7 @@ def main(_):
                                                           cache=cache)
     elif FLAGS.dataset == 'yelp':
       cache = {}
-      images, labels, datasets, embedding = read_data_yelp(word_id_dict, word_num_dict,
+      doc, labels, datasets, embedding = read_data_yelp(word_id_dict, word_num_dict,
                                                            FLAGS.data_path, FLAGS.max_input_length,
                                                            FLAGS.embedding_model,
                                                            FLAGS.min_count, FLAGS.train_ratio, FLAGS.valid_ratio,
@@ -235,7 +235,7 @@ def main(_):
     else:
       print("Unknown dataset name!")
 
-    trial = NASTrial(images, labels, datasets, embedding)
+    trial = NASTrial(doc, labels, datasets, embedding)
 
     trial.run(400*FLAGS.num_epochs)
 

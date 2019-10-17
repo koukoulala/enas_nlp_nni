@@ -180,7 +180,7 @@ def init_trainable_embedding(embedding, word_id_dict,
 
 def sst_get_trainable_data(phrases, word_id_dict,
                            split_label, max_input_length, is_binary):
-  images, bow_images, labels, datasets = [], [], [], []
+  doc, bow_doc, labels, datasets = [], [], [], []
 
   for (phrase, label) in phrases:
     if len(phrase.split(' ')) < phrase_min_length:
@@ -188,8 +188,8 @@ def sst_get_trainable_data(phrases, word_id_dict,
     phrase_input, field_input = sst_get_id_input(phrase,
                                                  word_id_dict,
                                                  max_input_length)
-    images.append(phrase_input)
-    bow_images.append(field_input)
+    doc.append(phrase_input)
+    bow_doc.append(field_input)
     labels.append(int(label))
     datasets.append("sst")
   labels = np.array(labels, dtype=np.int32)
@@ -200,17 +200,17 @@ def sst_get_trainable_data(phrases, word_id_dict,
     split_label_str = "test"
   else:
     split_label_str = "valid"
-  images = np.reshape(images, [-1, max_input_length])  #(N, len)
-  images = images.astype(np.int32)
-  bow_images = np.reshape(bow_images, [-1, max_input_length])
-  bow_images = bow_images.astype(np.int32)
-  print(split_label_str, images.shape, labels.shape, datasets.shape)
-  print(images)
-  return images, bow_images, labels, datasets
+  doc = np.reshape(doc, [-1, max_input_length])  #(N, len)
+  doc = doc.astype(np.int32)
+  bow_doc = np.reshape(bow_doc, [-1, max_input_length])
+  bow_doc = bow_doc.astype(np.int32)
+  print(split_label_str, doc.shape, labels.shape, datasets.shape)
+  print(doc)
+  return doc, bow_doc, labels, datasets
 
 def yelp_get_trainable_data(phrases, word_id_dict, dataset_name,
                  word_embed_model, split_label, max_input_length):
-  images, bow_images, labels, datasets = [], [], [], []
+  doc, bow_doc, labels, datasets = [], [], [], []
   bow_max_input_length = 10
   for (phrase, label) in phrases:
     phrase_input, field_input = sst_get_id_input(phrase,
@@ -219,8 +219,8 @@ def yelp_get_trainable_data(phrases, word_id_dict, dataset_name,
     bow_phrase_input, bow_field_input = sst_get_id_input(phrase,
                                                          word_id_dict,
                                                          bow_max_input_length)
-    images.append(phrase_input)
-    bow_images.append(field_input)
+    doc.append(phrase_input)
+    bow_doc.append(field_input)
     labels.append(int(label) - 1)
     datasets.append(dataset_name)
   labels = np.array(labels, dtype=np.int32)
@@ -231,13 +231,13 @@ def yelp_get_trainable_data(phrases, word_id_dict, dataset_name,
     split_label_str = "test"
   else:
     split_label_str = "valid"
-  images = np.reshape(images, [-1, max_input_length])  #(N, len)
-  images = images.astype(np.int32)
-  bow_images = np.reshape(bow_images, [-1, max_input_length])
-  bow_images = bow_images.astype(np.int32)
-  print(split_label_str, images.shape, labels.shape, datasets.shape)
-  print(images)
-  return images, bow_images, labels, datasets
+  doc = np.reshape(doc, [-1, max_input_length])  #(N, len)
+  doc = doc.astype(np.int32)
+  bow_doc = np.reshape(bow_doc, [-1, max_input_length])
+  bow_doc = bow_doc.astype(np.int32)
+  print(split_label_str, doc.shape, labels.shape, datasets.shape)
+  print(doc)
+  return doc, bow_doc, labels, datasets
 
 def load_glove_model(filename):
   embedding_dict = {}
@@ -275,7 +275,7 @@ def read_data_sst(word_id_dict, word_num_dict, data_path, max_input_length,
     labels: np tensor of size [N]
   """
 
-  images, labels, datasets = {}, {}, {}
+  doc, labels, datasets = {}, {}, {}
 
   if len(cache) == 0:
     print("-" * 80)
@@ -353,21 +353,21 @@ def read_data_sst(word_id_dict, word_num_dict, data_path, max_input_length,
 
   print("finish initialize word embedding")
 
-  images["train"], images["train_bow_ids"], labels["train"], datasets["train"] \
+  doc["train"], doc["train_bow_ids"], labels["train"], datasets["train"] \
           = sst_get_trainable_data(train_phrases, word_id_dict,
                    1, max_input_length, is_binary)
-  images["test"], images["test_bow_ids"], labels["test"], datasets["test"] \
+  doc["test"], doc["test_bow_ids"], labels["test"], datasets["test"] \
           = sst_get_trainable_data(test_phrases, word_id_dict,
                   2, max_input_length, is_binary)
   if is_valid == True:
-    images["valid"], images["valid_bow_ids"], labels["valid"], datasets["valid"]\
+    doc["valid"], doc["valid_bow_ids"], labels["valid"], datasets["valid"]\
             = sst_get_trainable_data(valid_phrases, word_id_dict,
                      3, max_input_length, is_binary)
   else:
-    images["valid"], images["valid_bow_ids"], labels["valid"], datasets["valid"]\
+    doc["valid"], doc["valid_bow_ids"], labels["valid"], datasets["valid"]\
             = None, None, None, None
 
-  return images, labels, datasets, embedding
+  return doc, labels, datasets, embedding
 
 def read_data_yelp(word_id_dict, word_num_dict, data_path, max_input_length,
                    embedding_model, min_count, train_ratio, valid_ratio,
@@ -378,7 +378,7 @@ def read_data_yelp(word_id_dict, word_num_dict, data_path, max_input_length,
     sentences: np tensor of size [N, H, W, C=1]
     labels: np tensor of size [N]
   """
-  images, labels, datasets = {}, {}, {}
+  doc, labels, datasets = {}, {}, {}
   dataset_name = data_path.split('/')[1]
   print("dataset_name: {0}".format(dataset_name))
 
@@ -437,18 +437,18 @@ def read_data_yelp(word_id_dict, word_num_dict, data_path, max_input_length,
   print("slot num: {0}".format(slot_num))
   print("finish initialize word embedding")
 
-  images["train"], images["train_bow_ids"], labels["train"], datasets["train"] \
+  doc["train"], doc["train_bow_ids"], labels["train"], datasets["train"] \
           = yelp_get_trainable_data(train_phrases, word_id_dict, dataset_name,
                                     word_embed_model, 1, max_input_length)
-  images["test"], images["test_bow_ids"], labels["test"], datasets["test"] \
+  doc["test"], doc["test_bow_ids"], labels["test"], datasets["test"] \
           = yelp_get_trainable_data(test_phrases, word_id_dict, dataset_name,
                                     word_embed_model, 2, max_input_length)
   if is_valid == True:
-    images["valid"], images["valid_bow_ids"], labels["valid"], datasets["valid"]\
+    doc["valid"], doc["valid_bow_ids"], labels["valid"], datasets["valid"]\
             = yelp_get_trainable_data(valid_phrases, word_id_dict, dataset_name,
                                       word_embed_model, 3, max_input_length)
   else:
-    images["valid"], images["valid_bow_ids"], labels["valid"], datasets["valid"]\
+    doc["valid"], doc["valid_bow_ids"], labels["valid"], datasets["valid"]\
             = None, None, None, None
 
-  return images, labels, datasets, embedding
+  return doc, labels, datasets, embedding

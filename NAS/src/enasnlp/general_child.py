@@ -16,11 +16,11 @@ from src.common_ops import create_weight, batch_norm, conv_op, pool_op, global_a
 
 class GeneralChild(Model):
   def __init__(self,
-               images_train,
-               bow_images_train,
+               doc_train,
+               bow_doc_train,
                labels_train,
                datasets_train,
-               images,
+               doc,
                labels,
                datasets,
                embedding,
@@ -81,11 +81,11 @@ class GeneralChild(Model):
     """
 
     super(self.__class__, self).__init__(
-      images_train,
-      bow_images_train,
+      doc_train,
+      bow_doc_train,
       labels_train,
       datasets_train,
-      images,
+      doc,
       labels,
       datasets,
       batch_size=batch_size,
@@ -260,40 +260,40 @@ class GeneralChild(Model):
 
     return outputs
 
-  def _to_sliding_window(self, images, batch_size, size, step):
-    result_images, sliding_windows = [], []
+  def _to_sliding_window(self, doc, batch_size, size, step):
+    result_doc, sliding_windows = [], []
     self.cur_batch_size = 0
-    max_len = images.get_shape()[1]
+    max_len = doc.get_shape()[1]
     for i in range(0, batch_size):
       start, count = 0, 0
       while start + size <= max_len:
-        image = tf.slice(images, [i, start], [1, size])
+        image = tf.slice(doc, [i, start], [1, size])
         image = tf.reshape(image, [size])
-        result_images.append(image)
+        result_doc.append(image)
         start += step
         count += 1
         self.cur_batch_size += 1
       sliding_windows.append(count)
-    result_images = tf.convert_to_tensor(result_images)
-    return result_images, sliding_windows
+    result_doc = tf.convert_to_tensor(result_doc)
+    return result_doc, sliding_windows
 
   def _from_sliding_window(self, x, batch_size, sliding_windows):
-    result_images, images = [], []
+    result_doc, doc = [], []
     index = 0
     print("cur_batch_size: {0}".format(self.cur_batch_size))
     print("sliding_windows: {0}".format(sliding_windows))
     for i in range(0, self.cur_batch_size):
-      images.append(x[i])
-      if len(images) == sliding_windows[index]:
-        image = tf.add_n(images)
-        result_images.append(image)
-        images = []
+      doc.append(x[i])
+      if len(doc) == sliding_windows[index]:
+        image = tf.add_n(doc)
+        result_doc.append(image)
+        doc = []
         index += 1
-    result_images = tf.convert_to_tensor(result_images)
-    print("result_images: {0}".format(result_images))
-    return result_images
+    result_doc = tf.convert_to_tensor(result_doc)
+    print("result_doc: {0}".format(result_doc))
+    return result_doc
 
-  def _model(self, images, bow_images, datasets, is_training,
+  def _model(self, doc, bow_doc, datasets, is_training,
              reuse=False, mode="train"):
     is_debug = self.is_debug and is_training
     with tf.variable_scope(self.name, reuse=reuse):
@@ -327,8 +327,8 @@ class GeneralChild(Model):
 
         self.final_embedding = embedding
         print("embedding: {0}".format(embedding))
-        print("images: {0}".format(images))
-        print("bow_images: {0}".format(bow_images))
+        print("doc: {0}".format(doc))
+        print("bow_doc: {0}".format(bow_doc))
 
         if is_training or mode =="valid":
           batch_size = self.batch_size
@@ -336,25 +336,25 @@ class GeneralChild(Model):
           batch_size = self.eval_batch_size
 
         if self.sliding_window:
-          images, sliding_windows = self._to_sliding_window(images, batch_size, size=64, step=32)
-          bow_images, _ = self._to_sliding_window(bow_images, batch_size, size=64, step=32)
-          print("images after sliding window: {0}".format(images))
+          doc, sliding_windows = self._to_sliding_window(doc, batch_size, size=64, step=32)
+          bow_doc, _ = self._to_sliding_window(bow_doc, batch_size, size=64, step=32)
+          print("doc after sliding window: {0}".format(doc))
 
         if is_training:
           embedding = tf.nn.dropout(embedding, keep_prob=self.embed_keep_prob)
 
-        images = tf.nn.embedding_lookup(embedding, images, max_norm=None)
-        field_embedding = tf.nn.embedding_lookup(field_embedding, bow_images, max_norm=None)
+        doc = tf.nn.embedding_lookup(embedding, doc, max_norm=None)
+        field_embedding = tf.nn.embedding_lookup(field_embedding, bow_doc, max_norm=None)
         if self.input_field_embedding:
-          images = tf.add_n([images, field_embedding])
-        images = tf.transpose(images, [0, 2, 1])
-        inp_c = images.shape[1]
-        inp_w = images.shape[2]
-        images = tf.reshape(images, [-1, inp_c, 1, inp_w])
+          doc = tf.add_n([doc, field_embedding])
+        doc = tf.transpose(doc, [0, 2, 1])
+        inp_c = doc.shape[1]
+        inp_w = doc.shape[2]
+        doc = tf.reshape(doc, [-1, inp_c, 1, inp_w])
         field_embedding = tf.transpose(field_embedding, [0, 2, 1])
         field_embedding = tf.reshape(field_embedding, [-1, inp_c, 1, inp_w])
 
-      x = images
+      x = doc
       pos_batch_size = 1
       # initialize pos_embedding for transformer
       if self.input_positional_encoding:
@@ -815,7 +815,7 @@ class GeneralChild(Model):
       print("Build valid graph on shuffled data")
       with tf.device("/cpu:0"):
         x_valid_shuffle, x_bow_valid_shuffle, y_valid_shuffle, d_valid_shuffle = tf.train.shuffle_batch(
-          [self.images["valid_original"], self.images["valid_bow_ids_original"],
+          [self.doc["valid_original"], self.doc["valid_bow_ids_original"],
            self.labels["valid_original"], self.datasets["valid_original"]],
           batch_size=self.batch_size,
           capacity=25000,
