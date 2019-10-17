@@ -7,11 +7,11 @@ import tensorflow as tf
 
 class Model(object):
   def __init__(self,
-               images_train,
-               bow_images_train,
+               doc_train,
+               bow_doc_train,
                labels_train,
                datasets_train,
-               images,
+               doc,
                labels,
                datasets,
                batch_size=32,
@@ -80,14 +80,14 @@ class Model(object):
 
     with tf.device("/cpu:0"):
       # training data
-      self.num_train_examples = int(np.shape(images["train"])[0])
+      self.num_train_examples = int(np.shape(doc["train"])[0])
 
       self.num_train_batches = (
         self.num_train_examples + self.batch_size - 1) // self.batch_size
 
-      # images_train,labels_train,datasets_train are placeholders
-      train_dataset = tf.data.Dataset.from_tensor_slices((images_train,
-                                           bow_images_train, labels_train, datasets_train))
+      # doc_train,labels_train,datasets_train are placeholders
+      train_dataset = tf.data.Dataset.from_tensor_slices((doc_train,
+                                           bow_doc_train, labels_train, datasets_train))
 
       train_dataset = train_dataset.shuffle(buffer_size=50000)
       train_dataset = train_dataset.repeat() # repeat indefinitely
@@ -104,56 +104,56 @@ class Model(object):
 
       # valid data
       self.x_valid, self.x_bow_valid, self.y_valid, self.d_valid = None, None, None, None
-      if images["valid"] is not None:
-        images["valid_original"] = np.copy(images["valid"])
-        images["valid_bow_ids_original"] = np.copy(images["valid_bow_ids"])
+      if doc["valid"] is not None:
+        doc["valid_original"] = np.copy(doc["valid"])
+        doc["valid_bow_ids_original"] = np.copy(doc["valid_bow_ids"])
         labels["valid_original"] = np.copy(labels["valid"])
         datasets["valid_original"] = np.copy(datasets["valid"])
-        self.num_valid_examples = np.shape(images["valid"])[0]
+        self.num_valid_examples = np.shape(doc["valid"])[0]
         self.num_valid_batches = (
           (self.num_valid_examples + self.eval_batch_size - 1)
           // self.eval_batch_size)
 
-        self.images_valid = tf.placeholder(images["valid"].dtype,
-                       [None, images["valid"].shape[1]], name="images_valid")
-        self.bow_images_valid = tf.placeholder(images["valid_bow_ids"].dtype,
-                       [None, images["valid_bow_ids"].shape[1]], name="bow_images_valid")
+        self.doc_valid = tf.placeholder(doc["valid"].dtype,
+                       [None, doc["valid"].shape[1]], name="doc_valid")
+        self.bow_doc_valid = tf.placeholder(doc["valid_bow_ids"].dtype,
+                       [None, doc["valid_bow_ids"].shape[1]], name="bow_doc_valid")
         self.labels_valid = tf.placeholder(labels["valid"].dtype,
                        [None], name="labels_valid")
         self.datasets_valid = tf.placeholder(datasets["valid"].dtype,
                        [None], name="datasets_valid")
 
-        valid_dataset = tf.data.Dataset.from_tensor_slices((self.images_valid,
-                                       self.bow_images_valid, self.labels_valid, self.datasets_valid))
+        valid_dataset = tf.data.Dataset.from_tensor_slices((self.doc_valid,
+                                       self.bow_doc_valid, self.labels_valid, self.datasets_valid))
         valid_dataset = valid_dataset.batch(self.eval_batch_size)
         self.valid_batch_iterator = valid_dataset.make_initializable_iterator()
         self.x_valid, self.x_bow_valid, self.y_valid, self.d_valid = self.valid_batch_iterator.get_next()
 
       # test data
-      self.num_test_examples = np.shape(images["test"])[0]
+      self.num_test_examples = np.shape(doc["test"])[0]
 
       self.num_test_batches = (
         (self.num_test_examples + self.eval_batch_size - 1)
         // self.eval_batch_size)
       # change to dataset api
 
-      self.images_test = tf.placeholder(images["test"].dtype,
-                       [None, images["test"].shape[1]], name="images_test")
-      self.bow_images_test = tf.placeholder(images["test_bow_ids"].dtype,
-                       [None, images["test_bow_ids"].shape[1]], name="bow_images_test")
+      self.doc_test = tf.placeholder(doc["test"].dtype,
+                       [None, doc["test"].shape[1]], name="doc_test")
+      self.bow_doc_test = tf.placeholder(doc["test_bow_ids"].dtype,
+                       [None, doc["test_bow_ids"].shape[1]], name="bow_doc_test")
       self.labels_test = tf.placeholder(labels["test"].dtype,
                        [None], name="labels_test")
       self.datasets_test = tf.placeholder(datasets["test"].dtype,
                        [None], name="datasets_test")
 
-      test_dataset = tf.data.Dataset.from_tensor_slices((self.images_test,
-                                     self.bow_images_test, self.labels_test, self.datasets_test))
+      test_dataset = tf.data.Dataset.from_tensor_slices((self.doc_test,
+                                     self.bow_doc_test, self.labels_test, self.datasets_test))
       test_dataset = test_dataset.batch(self.eval_batch_size)
       self.test_batch_iterator = test_dataset.make_initializable_iterator()
       self.x_test, self.x_bow_test, self.y_test, self.d_test = self.test_batch_iterator.get_next()
 
-    # cache images and labels, as well as datasets
-    self.images = images
+    # cache doc and labels, as well as datasets
+    self.doc = doc
     self.labels = labels
     self.datasets = datasets
 
@@ -178,8 +178,8 @@ class Model(object):
       num_batches = self.num_valid_batches
       acc_op = self.valid_acc
       sess.run(self.valid_batch_iterator.initializer, feed_dict={
-          self.images_valid: self.images["valid"],
-          self.bow_images_valid: self.images["valid_bow_ids"],
+          self.doc_valid: self.doc["valid"],
+          self.bow_doc_valid: self.doc["valid_bow_ids"],
           self.labels_valid: self.labels["valid"],
           self.datasets_valid: self.datasets["valid"]
       })
@@ -189,8 +189,8 @@ class Model(object):
       num_batches = self.num_test_batches
       acc_op = self.test_acc
       sess.run(self.test_batch_iterator.initializer, feed_dict={
-          self.images_test: self.images["test"],
-          self.bow_images_test: self.images["test_bow_ids"],
+          self.doc_test: self.doc["test"],
+          self.bow_doc_test: self.doc["test_bow_ids"],
           self.labels_test: self.labels["test"],
           self.datasets_test: self.datasets["test"]
       })
@@ -224,7 +224,7 @@ class Model(object):
 
     return final_acc
 
-  def _model(self, images, is_training, reuse=None):
+  def _model(self, doc, is_training, reuse=None):
     raise NotImplementedError("Abstract method")
 
   def _build_train(self):

@@ -20,7 +20,7 @@ class GeneralChild(Model):
                bow_doc_train,
                labels_train,
                datasets_train,
-               docs,
+               doc,
                labels,
                datasets,
                embedding,
@@ -85,7 +85,7 @@ class GeneralChild(Model):
       bow_doc_train,
       labels_train,
       datasets_train,
-      docs,
+      doc,
       labels,
       datasets,
       batch_size=batch_size,
@@ -815,7 +815,7 @@ class GeneralChild(Model):
       print("Build valid graph on shuffled data")
       with tf.device("/cpu:0"):
         x_valid_shuffle, x_bow_valid_shuffle, y_valid_shuffle, d_valid_shuffle = tf.train.shuffle_batch(
-          [self.docs["valid_original"], self.docs["valid_bow_ids_original"],
+          [self.doc["valid_original"], self.doc["valid_bow_ids_original"],
            self.labels["valid_original"], self.datasets["valid_original"]],
           batch_size=self.batch_size,
           capacity=25000,
