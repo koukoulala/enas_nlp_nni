@@ -9,7 +9,7 @@ import tensorflow as tf
 import gensim.models.keyedvectors as word2vec
 import logging
 
-from nni_child_model.deal_data.data_utils import read_data_sst,read_data_yelp
+from nni_child_model.deal_data.data_utils import read_data_sst
 from nni_child_model.general_child import GeneralChild
 from commons.flags import FLAGS
 
@@ -123,7 +123,7 @@ class NASTrial():
     self.graph = tf.Graph()
     with self.graph.as_default():
       with tf.device("/cpu:0"):
-        print(doc["train"])
+        print(doc["train"].shape, doc["train"])
         doc_train = tf.placeholder(doc["train"].dtype,
                                       [None, doc["train"].shape[1]], name="doc_train")
         bow_doc_train = tf.placeholder(doc["train_bow_ids"].dtype,
@@ -225,13 +225,6 @@ def main(_):
                                                           FLAGS.min_count, FLAGS.train_ratio, FLAGS.valid_ratio,
                                                           FLAGS.is_binary, is_valid,
                                                           cache=cache)
-    elif FLAGS.dataset == 'yelp':
-      cache = {}
-      doc, labels, datasets, embedding = read_data_yelp(word_id_dict, word_num_dict,
-                                                           FLAGS.data_path, FLAGS.max_input_length,
-                                                           FLAGS.embedding_model,
-                                                           FLAGS.min_count, FLAGS.train_ratio, FLAGS.valid_ratio,
-                                                           is_valid, cache=cache)
     else:
       print("Unknown dataset name!")
 

@@ -382,11 +382,10 @@ class GeneralChild(object):
 
   def _model(self, doc, bow_doc, datasets, is_training,
              reuse=False, mode="train"):
-    is_debug = self.is_debug and is_training
+
     with tf.variable_scope(self.name, reuse=reuse):
       layers = []
-      final_flags = []
-      pre_idxs = []
+
       if is_training:
         self.valid_lengths = []
       with tf.variable_scope('embed'):
@@ -435,11 +434,15 @@ class GeneralChild(object):
         if self.input_field_embedding:
           doc = tf.add_n([doc, field_embedding])
         doc = tf.transpose(doc, [0, 2, 1])
+
+        print("doc_shape", doc.shape)
         inp_c = doc.shape[1]
         inp_w = doc.shape[2]
         doc = tf.reshape(doc, [-1, inp_c, 1, inp_w])
         field_embedding = tf.transpose(field_embedding, [0, 2, 1])
         field_embedding = tf.reshape(field_embedding, [-1, inp_c, 1, inp_w])
+
+        print("after: doc, field_embedding", doc.shape, field_embedding.shape)
 
       x = doc
       pos_batch_size = 1

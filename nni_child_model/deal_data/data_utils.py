@@ -3,9 +3,6 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-import io
-import sys
-import csv
 import numpy as np
 import math
 import tensorflow as tf
@@ -28,34 +25,6 @@ def sst_load_trees(filename):
   trees = read_trees(filename)
   return trees
 
-def yelp_load_phrases(filename, train_ratio=1.0,
-                      valid_ratio=0.0, valid_phrases=[]):
-  phrases = []
-  csv.field_size_limit(1000000000)
-  with open(filename) as csv_file:
-    csv_reader = csv.reader(csv_file, delimiter=',', quoting=csv.QUOTE_MINIMAL)
-    for slots in csv_reader:
-      if len(slots) < 2:
-        continue
-      global slot_num
-      slot_num = len(slots) - 1
-      sentence = ""
-      for i in range(1, len(slots)):
-        sentence += slots[i] + " <sep> "
-      sentence = sentence.replace("\\n", " <end> ")
-      sentence = sentence.strip()
-      split_label = int(slots[0])
-      pair = (sentence, split_label)
-      if train_ratio == 1.0:
-        phrases.append(pair)
-      else:
-        rand_portion = np.random.random()
-        if rand_portion < train_ratio:
-          phrases.append(pair)
-        elif rand_portion < train_ratio + valid_ratio:
-          valid_phrases.append(pair)
-  np.random.shuffle(phrases)
-  return phrases
 
 def sst_get_id_input(content, word_id_dict, max_input_length):
   words = content.split(' ')
@@ -212,37 +181,6 @@ def sst_get_trainable_data(phrases, word_id_dict,
   print(doc)
   return doc, bow_doc, labels, datasets
 
-def yelp_get_trainable_data(phrases, word_id_dict, dataset_name,
-                 word_embed_model, split_label, max_input_length):
-  doc, bow_doc, labels, datasets = [], [], [], []
-  bow_max_input_length = 10
-  for (phrase, label) in phrases:
-    phrase_input, field_input = sst_get_id_input(phrase,
-                                                 word_id_dict,
-                                                 max_input_length)
-    bow_phrase_input, bow_field_input = sst_get_id_input(phrase,
-                                                         word_id_dict,
-                                                         bow_max_input_length)
-    doc.append(phrase_input)
-    bow_doc.append(field_input)
-    labels.append(int(label) - 1)
-    datasets.append(dataset_name)
-  labels = np.array(labels, dtype=np.int32)
-  datasets = np.array(datasets, dtype=np.str)
-  if split_label == 1:
-    split_label_str = "train"
-  elif split_label == 2:
-    split_label_str = "test"
-  else:
-    split_label_str = "valid"
-  doc = np.reshape(doc, [-1, max_input_length])  #(N, len)
-  doc = doc.astype(np.int32)
-  bow_doc = np.reshape(bow_doc, [-1, max_input_length])
-  bow_doc = bow_doc.astype(np.int32)
-  print(split_label_str, doc.shape, labels.shape, datasets.shape)
-  print(doc)
-  return doc, bow_doc, labels, datasets
-
 def load_glove_model(filename):
   embedding_dict = {}
   with open(filename) as f:
@@ -373,86 +311,3 @@ def read_data_sst(word_id_dict, word_num_dict, data_path, max_input_length,
 
   return doc, labels, datasets, embedding
 
-def read_data_yelp(word_id_dict, word_num_dict, data_path, max_input_length,
-                   embedding_model, min_count, train_ratio, valid_ratio,
-                   is_valid=False, cache={}):
-  """Reads yelp format data. Always returns NHWC format
-
-  Returns:
-    sentences: np tensor of size [N, H, W, C=1]
-    labels: np tensor of size [N]
-  """
-  doc, labels, datasets = {}, {}, {}
-  dataset_name = data_path.split('/')[1]
-  print("dataset_name: {0}".format(dataset_name))
-
-  if len(cache) == 0:
-    print("-" * 80)
-    print("Reading data")
-
-    train_file_name = os.path.join(data_path, 'train.csv')
-    test_file_name = os.path.join(data_path, 'test.csv')
-    if is_valid == False:
-      train_phrases = yelp_load_phrases(train_file_name, train_ratio)
-      valid_phrases = None
-    else:
-      valid_phrases = []
-      train_phrases = yelp_load_phrases(train_file_name,
-                                        train_ratio,
-                                        valid_ratio,
-                                        valid_phrases)
-    test_phrases = yelp_load_phrases(test_file_name)
-    cache["train"] = train_phrases
-    cache["valid"] = valid_phrases
-    cache["test"] = test_phrases
-    print("finish load data")
-  else:
-    train_phrases = cache["train"]
-    valid_phrases = cache["valid"]
-    test_phrases = cache["test"]
-
-  #get word_id_dict
-  word_id_dict["<pad>"] = 0
-  word_id_dict["<unknown>"] = 1
-
-  load_word_num_dict(train_phrases, word_num_dict)
-  print("finish load train words: {0}".format(len(word_num_dict)))
-  if valid_phrases != None:
-    load_word_num_dict(valid_phrases, word_num_dict)
-  load_word_num_dict(test_phrases, word_num_dict)
-  print("finish load test words: {0}".format(len(word_num_dict)))
-  word_id_dict = get_word_id_dict(word_num_dict, word_id_dict, min_count)
-  print("after trim words: {0}".format(len(word_id_dict)))
-
-  word_embed_model, unknown_word_embed = load_embedding(embedding_model)
-  embedding = {}
-  for model_name in word_embed_model:
-    embedding[model_name] = np.random.random(
-            [len(word_id_dict), embed_dim]).astype(np.float32) / 2.0 - 0.25
-    embedding[model_name] = init_trainable_embedding(embedding[model_name],
-            word_id_dict, word_embed_model[model_name], unknown_word_embed)
-  embedding["none"] = np.random.random(
-          [len(word_id_dict), embed_dim]).astype(np.float32) / 2.0 - 0.25
-  embedding["none"][0] = np.zeros([embed_dim])
-  embedding["field"] = np.random.random(
-          [slot_num + 1, embed_dim]).astype(np.float32) / 2.0 - 0.25
-  embedding["field"][0] = np.zeros([embed_dim])
-
-  print("slot num: {0}".format(slot_num))
-  print("finish initialize word embedding")
-
-  doc["train"], doc["train_bow_ids"], labels["train"], datasets["train"] \
-          = yelp_get_trainable_data(train_phrases, word_id_dict, dataset_name,
-                                    word_embed_model, 1, max_input_length)
-  doc["test"], doc["test_bow_ids"], labels["test"], datasets["test"] \
-          = yelp_get_trainable_data(test_phrases, word_id_dict, dataset_name,
-                                    word_embed_model, 2, max_input_length)
-  if is_valid == True:
-    doc["valid"], doc["valid_bow_ids"], labels["valid"], datasets["valid"]\
-            = yelp_get_trainable_data(valid_phrases, word_id_dict, dataset_name,
-                                      word_embed_model, 3, max_input_length)
-  else:
-    doc["valid"], doc["valid_bow_ids"], labels["valid"], datasets["valid"]\
-            = None, None, None, None
-
-  return doc, labels, datasets, embedding
