@@ -3,10 +3,10 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from common.utils import DEFINE_boolean
-from common.utils import DEFINE_float
-from common.utils import DEFINE_integer
-from common.utils import DEFINE_string
+from commons.utils import DEFINE_boolean
+from commons.utils import DEFINE_float
+from commons.utils import DEFINE_integer
+from commons.utils import DEFINE_string
 flags = tf.app.flags
 FLAGS = flags.FLAGS
 

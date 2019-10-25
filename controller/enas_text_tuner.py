@@ -7,8 +7,8 @@ import os
 os.environ['CUDA_VISIBLE_DEVICES'] = ''
 import tensorflow as tf
 from nni.tuner import Tuner
-from controller.general_controller import GeneralController
-from common.flags import *
+from commons.flags import *
+from general_controller import GeneralController
 from collections import OrderedDict
 
 

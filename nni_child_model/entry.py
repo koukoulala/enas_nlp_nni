@@ -11,7 +11,7 @@ import logging
 
 from nni_child_model.deal_data.data_utils import read_data_sst,read_data_yelp
 from nni_child_model.general_child import GeneralChild
-from common.flags import FLAGS
+from commons.flags import FLAGS
 
 
 def build_logger(log_name):
