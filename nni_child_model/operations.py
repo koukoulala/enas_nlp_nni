@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.training import moving_averages
 from tensorflow.contrib import rnn
-from common.common_ops import create_weight
+from commons.common_ops import create_weight
 
 def get_length(sequence):
     used = tf.sign(tf.reduce_max(tf.abs(sequence), 2))

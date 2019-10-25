@@ -9,8 +9,8 @@ import random
 import numpy as np
 import tensorflow as tf
 
-from common.utils import count_model_params, get_train_ops
-from common.common_ops import create_weight
+from commons.utils import count_model_params, get_train_ops
+from commons.common_ops import create_weight
 from nni_child_model.operations import batch_norm, conv_op, pool_op, global_avg_pool, recur_op, attention_op, \
   multihead_attention, _conv_opt
 

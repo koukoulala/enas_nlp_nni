@@ -3,8 +3,8 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from common.utils import get_train_ops
-from common.common_ops import stack_lstm
+from commons.utils import get_train_ops
+from commons.common_ops import stack_lstm
 
 
 class GeneralController():
