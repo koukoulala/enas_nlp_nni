@@ -14,7 +14,6 @@ FLAGS = flags.FLAGS
 DEFINE_boolean("reset_output_dir", False, "Delete output_dir if exists.")
 DEFINE_string("data_path", "", "")
 DEFINE_string("output_dir", "", "")
-DEFINE_string("data_format", "NHWC", "'NHWC' or 'NCWH'")
 DEFINE_string("search_for", "macro", "Must be [macro|micro]")
 DEFINE_string("dataset", "sst", "dataset for evaluation")
 DEFINE_string("embedding_model", "word2vec", "word2vec or glove")

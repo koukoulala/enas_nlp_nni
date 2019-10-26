@@ -10,7 +10,7 @@ useAnnotation: true
 multiPhase: true
 tuner:
   codeDir: ./controller
-  classFileName: enas_text_tuner.py
+  classFileName: nni_text_tuner.py
   className: RLTuner
   classArgs:
     child_steps: 350

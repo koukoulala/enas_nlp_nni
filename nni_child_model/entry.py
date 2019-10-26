@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import os
 import shutil
 import nni
@@ -9,7 +10,7 @@ import tensorflow as tf
 import gensim.models.keyedvectors as word2vec
 import logging
 
-from nni_child_model.deal_data.data_utils import read_data_sst
+from nni_child_model.data.data_utils import read_data_sst
 from nni_child_model.general_child import GeneralChild
 from commons.flags import FLAGS
 
@@ -52,7 +53,6 @@ def build_trial(doc_train, bow_doc_train, labels_train, datasets_train,
     var_rec=FLAGS.var_rec,
     num_epochs=FLAGS.num_epochs,
     l2_reg=FLAGS.child_l2_reg,
-    data_format=FLAGS.data_format,
     dataset=FLAGS.dataset,
     class_num=FLAGS.class_num,
     pool_step=FLAGS.pool_step,

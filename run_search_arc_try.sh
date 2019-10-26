@@ -12,7 +12,6 @@ python3 ./nni_child_model/entry.py \
   --all_layer_output \
   --output_linear_combine \
   --child_lr_decay_scheme="cosine" \
-  --data_format="NCHW" \
   --search_for="macro" \
   --reset_output_dir \
   --data_path="./data/sst_test" \

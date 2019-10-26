@@ -3,12 +3,10 @@ from __future__ import division
 from __future__ import print_function
 
 import logging
-import os
-os.environ['CUDA_VISIBLE_DEVICES'] = ''
 import tensorflow as tf
 from nni.tuner import Tuner
 from commons.flags import *
-from controller.general_controller import GeneralController
+from controller.rl_controller import GeneralController
 from collections import OrderedDict
 
 

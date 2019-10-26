@@ -11,8 +11,8 @@ import tensorflow as tf
 
 from commons.utils import count_model_params, get_train_ops
 from commons.common_ops import create_weight
-from nni_child_model.operations import batch_norm, conv_op, pool_op, global_avg_pool, recur_op, attention_op, \
-  multihead_attention, _conv_opt
+from nni_child_model.operations import batch_norm, conv_op, pool_op, global_avg_pool
+from nni_child_model.operations import recur_op, attention_op, multihead_attention, _conv_opt
 
 class GeneralChild(object):
   def __init__(self,
@@ -55,7 +55,6 @@ class GeneralChild(object):
                lr_T_0=None,
                lr_T_mul=None,
                optim_algo=None,
-               data_format="NHWC",
                dataset="sst",
                multi_path=False,
                positional_encoding=False,
@@ -100,7 +99,6 @@ class GeneralChild(object):
     self.var_rec = var_rec
     self.optim_algo = optim_algo
     self.dataset = dataset
-    self.data_format = data_format
     self.name = name
     self.seed = seed
     if self.dataset == "sst":
@@ -237,7 +235,7 @@ class GeneralChild(object):
     self.w_emb = tf.get_variable("w_out", [10000, self.out_filters])
 
   def _get_strides(self, stride):
-    return [1, 1, 1, stride]
+    return [1, 1, stride]
 
   def _factorized_reduction(self, x, out_filters, stride, is_training):
     """Reduces the shape of x without information loss due to striding."""
@@ -246,47 +244,44 @@ class GeneralChild(object):
     if stride == 1:
       with tf.variable_scope("path_conv"):
         x = _conv_opt(x, 1, out_filters)
-        x = batch_norm(x, is_training, data_format=self.data_format)
+        x = batch_norm(x, is_training)
         return x
 
     actual_data_format = "channels_first"  # only support NCHW
     stride_spec = self._get_strides(stride)
     # Skip path 1
-    path1 = tf.nn.max_pool(
-        x, [1, 1, 1, 1], stride_spec, "VALID", data_format=self.data_format)
+    print("Skip path 1", x.shape)
+    path1 = tf.layers.max_pooling1d(
+      x, 1, stride_spec, "VALID", data_format=actual_data_format)
+    #path1 = tf.nn.max_pool(x, [1, 1, 1], stride_spec, "VALID", data_format="NCHW")
+    print("after max_pool:", path1.shape)
 
     with tf.variable_scope("path1_conv"):
       path1 = _conv_opt(path1, 1, out_filters // 2)
 
+    print("after conv:", path1.shape)
+
     # Skip path 2
     # First pad with 0"s on the right and bottom, then shift the filter to
     # include those 0"s that were added.
-    if self.data_format == "NHWC":
-      pad_arr = [[0, 0], [0, 1], [0, 1], [0, 0]]
-      path2 = tf.pad(x, pad_arr)[:, 1:, 1:, :]
-      inp_c = path2.get_shape()[1].value
-      if inp_c > 1:
-        concat_axis = 3
-      else:
+
+    pad_arr = [[0, 0], [0, 0], [0, 1]]
+    path2 = tf.pad(x, pad_arr)[:, :, 1:]
+    inp_c = path2.get_shape()[1].value
+    if inp_c > 1:
         concat_axis = 1
     else:
-      pad_arr = [[0, 0], [0, 0], [0, 0], [0, 1]]
-      path2 = tf.pad(x, pad_arr)[:, :, :, 1:]
-      inp_c = path2.get_shape()[1].value
-      if inp_c > 1:
-        concat_axis = 1
-      else:
         concat_axis = 2
 
-    path2 = tf.nn.max_pool(
-        path2, [1, 1, 1, 1], stride_spec, "VALID", data_format=self.data_format)
+    path2 = tf.layers.max_pooling1d(
+      path2, 1, stride_spec, "VALID", data_format=actual_data_format)
+    #path2 = tf.nn.max_pool(path2, [1, 1, 1], stride_spec, "VALID", data_format=self.data_format)
     with tf.variable_scope("path2_conv"):
       path2 = _conv_opt(path2, 1, out_filters // 2)
 
     # Concat and apply BN
     final_path = tf.concat(values=[path1, path2], axis=concat_axis)
-    final_path = batch_norm(final_path, is_training,
-                            data_format=self.data_format)
+    final_path = batch_norm(final_path, is_training)
 
     return final_path
 
@@ -438,9 +433,11 @@ class GeneralChild(object):
         print("doc_shape", doc.shape)
         inp_c = doc.shape[1]
         inp_w = doc.shape[2]
-        doc = tf.reshape(doc, [-1, inp_c, 1, inp_w])
+        #doc = tf.reshape(doc, [-1, inp_c, 1, inp_w])
+        doc = tf.reshape(doc, [-1, inp_c, inp_w])
         field_embedding = tf.transpose(field_embedding, [0, 2, 1])
-        field_embedding = tf.reshape(field_embedding, [-1, inp_c, 1, inp_w])
+        #field_embedding = tf.reshape(field_embedding, [-1, inp_c, 1, inp_w])
+        field_embedding = tf.reshape(field_embedding, [-1, inp_c, inp_w])
 
         print("after: doc, field_embedding", doc.shape, field_embedding.shape)
 
@@ -464,7 +461,7 @@ class GeneralChild(object):
                                 scope="enc_pe")
       print("pos embedding: {0}".format(pos_embedding))
       pos_embedding = tf.transpose(pos_embedding, [0, 2, 1])
-      pos_embedding = tf.expand_dims(pos_embedding, axis=2)
+      #pos_embedding = tf.expand_dims(pos_embedding, axis=2)
       print("pos embedding: {0}".format(pos_embedding))
       if self.input_positional_encoding:
         x += pos_embedding
@@ -472,7 +469,7 @@ class GeneralChild(object):
       out_filters = self.out_filters
       with tf.variable_scope("init_conv"):  # adjust out_filter dimension
         x = _conv_opt(x, 1, self.out_filters)
-        x = batch_norm(x, is_training, data_format=self.data_format)
+        x = batch_norm(x, is_training)
 
         layers.append(x)
 
@@ -510,23 +507,17 @@ class GeneralChild(object):
           with tf.variable_scope("skip"):
             #print("layers",layers)
             inputs = layers[-1]
-            if self.data_format == "NHWC":
-              inp_h = inputs.get_shape()[1].value
-              inp_w = inputs.get_shape()[2].value
-              inp_c = inputs.get_shape()[3].value
-              out.set_shape([None, inp_h, inp_w, out_filters])
-            elif self.data_format == "NCHW":
-              inp_c = inputs.get_shape()[1].value
-              inp_h = inputs.get_shape()[2].value
-              inp_w = inputs.get_shape()[3].value
-              out.set_shape([None, out_filters, inp_h, inp_w])
+
+            inp_d = inputs.get_shape()[1].value
+            inp_l = inputs.get_shape()[2].value
+
+            out.set_shape([None, out_filters, inp_l])
             try:
               out = tf.add_n(
                 [out, tf.reduce_sum(optional_inputs, axis=0)])
             except Exception as e:
               print(e)
-            out = batch_norm(out, is_training,
-                             data_format=self.data_format)
+            out = batch_norm(out, is_training)
         layers.append(out)
         return out
 
@@ -564,7 +555,7 @@ class GeneralChild(object):
             dealed_inputs = tf.reduce_sum(inputs[1], axis=0)
             #print("dealed_inputs::", dealed_inputs)
             out = pool_op(
-              dealed_inputs, is_training, out_filters, out_filters, ptype, self.data_format, start_idx=None)
+              dealed_inputs, is_training, out_filters, out_filters, ptype, start_idx=None)
         #layers.append(out)
         return out
 
@@ -576,7 +567,7 @@ class GeneralChild(object):
             dealed_inputs = tf.reduce_sum(inputs[1], axis=0)
             #print("dealed_inputs::", dealed_inputs)
             out = recur_op(
-              dealed_inputs, is_training, out_filters, out_filters, start_idx=0, data_format=self.data_format,
+              dealed_inputs, is_training, out_filters, out_filters, start_idx=0,
              lstm_x_keep_prob=self.lstm_x_keep_prob, lstm_h_keep_prob=self.lstm_h_keep_prob, lstm_o_keep_prob=self.lstm_o_keep_prob, var_rec=self.var_rec)
         #layers.append(out)
         return out
@@ -590,7 +581,7 @@ class GeneralChild(object):
             #print("dealed_inputs::", dealed_inputs)
             out = attention_op(
               dealed_inputs, pos_embedding, field_embedding, is_training, out_filters, out_filters, start_idx=0,
-              positional_encoding=self.positional_encoding, attention_keep_prob=self.attention_keep_prob, data_format=self.data_format,
+              positional_encoding=self.positional_encoding, attention_keep_prob=self.attention_keep_prob,
             do_field_embedding=self.field_embedding)
         #layers.append(out)
         return out
@@ -783,37 +774,37 @@ class GeneralChild(object):
       class_num = self.class_num
       with tf.variable_scope("fc"):
         if not self.is_output_attention:
-          x = global_avg_pool(x, data_format=self.data_format)
+          x = tf.reduce_mean(x, 2)
         else:
           batch_size = x.get_shape()[0].value
-          inp_c = x.get_shape()[1].value
-          inp_h = x.get_shape()[2].value
-          inp_w = x.get_shape()[3].value
-          final_attention_query = create_weight("query", shape=[1, 1, inp_c], trainable=True,
+          inp_d = x.get_shape()[1].value
+          inp_l = x.get_shape()[2].value
+
+          final_attention_query = create_weight("query", shape=[1, inp_d], trainable=True,
                                     initializer=tf.truncated_normal_initializer, regularizer=regularizer)
           if is_training or mode == "valid":
             batch_size = self.batch_size
           else:
             batch_size = self.eval_batch_size
-          final_attention_query = tf.tile(final_attention_query, [batch_size, 1, 1])
+          final_attention_query = tf.tile(final_attention_query, [batch_size, 1])
           print("final_attention_query: {0}".format(final_attention_query))
 
           #put channel to the last dim
-          x = tf.transpose(x, [0, 2, 3, 1])        #1, 24, 32
-          x = tf.reshape(x, [-1, inp_h*inp_w, inp_c])
+          x = tf.transpose(x, [0, 2, 1])
+          x = tf.reshape(x, [-1, inp_l, inp_d])
           print("x: {0}".format(x))
           x = multihead_attention(queries=final_attention_query,
                                    keys=x,
                                    pos_embedding=pos_embedding,
                                    field_embedding=field_embedding,
-                                   num_units=inp_c,
+                                   num_units=inp_d,
                                    num_heads=8,
                                    dropout_rate=0,
                                    is_training=is_training,
                                    causality=False,
                                    positional_encoding=self.positional_encoding)
           print("x: {0}".format(x))
-          x = tf.reshape(x, [-1, 1, inp_c])
+          x = tf.reshape(x, [-1, 1, inp_d])
           x = tf.reduce_sum(x, axis=1)
           print("x: {0}".format(x))
         if is_training:

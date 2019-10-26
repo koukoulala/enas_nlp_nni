@@ -8,7 +8,7 @@ import math
 import tensorflow as tf
 import gensim.models.keyedvectors as word2vec
 from pathlib import Path
-from nni_child_model.deal_data.ptb import *
+from nni_child_model.data.ptb import *
 
 global only_sentence, use_embed_layer, phrase_min_length, slot_num
 only_sentence = False
