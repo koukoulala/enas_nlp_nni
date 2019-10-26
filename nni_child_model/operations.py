@@ -28,16 +28,19 @@ def _conv_opt(inputs, window_size, out_filters, separable=False, ch_mul=1, is_ma
       inputs = tf.transpose(inputs, [0, 2, 1])  # [batch_size, len, dim]
       inputs = tf.reshape(inputs, [-1, inp_d, inp_l])
       inputs = tf.where(mask, inputs, tf.zeros_like(inputs))
+      #print("is mask", inputs.shape)
 
     if separable == True:
       w_depth = create_weight(
           "w_depth", [window_size, out_filters, ch_mul])
       w_point = create_weight("w_point", [1, out_filters * ch_mul, out_filters])
-      out = tf.nn.separable_conv1d(inputs, w_depth, w_point, strides=[1, 1, 1],
-                                   padding="SAME")
+      out = tf.nn.separable_conv1d(inputs, w_depth, w_point, strides=1,
+                                   padding="SAME", data_format='NCW')
     else:
       w = create_weight("w", [window_size, inp_d, out_filters])
-      out = tf.nn.conv1d(inputs, w, [1, 1, 1], "SAME")
+      #print("w_weight", w.shape, inputs.shape)
+      out = tf.nn.conv1d(inputs, w, 1, "SAME", data_format='NCW')
+      #print("out", out.shape)
 
     if is_mask:
       mask = tf.sequence_mask(valid_length, inp_l)
@@ -96,7 +99,7 @@ def pool_op(inputs, is_training, count, out_filters, avg_or_max, start_idx=None)
 
     with tf.variable_scope("conv_1"):
         w = create_weight("w", [1, inp_d, out_filters])
-        x = tf.nn.conv1d(inputs, w, [1, 1, 1], "SAME")
+        x = tf.nn.conv1d(inputs, w, 1, "SAME", data_format='NCW')
         x = batch_norm(x, is_training)
         x = tf.nn.relu(x)
 
