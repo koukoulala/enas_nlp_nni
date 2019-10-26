@@ -11,7 +11,7 @@ import tensorflow as tf
 
 from commons.utils import count_model_params, get_train_ops
 from commons.common_ops import create_weight
-from nni_child_model.operations import batch_norm, conv_op, pool_op, global_avg_pool
+from nni_child_model.operations import batch_norm, conv_op, pool_op
 from nni_child_model.operations import recur_op, attention_op, multihead_attention, _conv_opt
 
 class GeneralChild(object):
@@ -234,8 +234,6 @@ class GeneralChild(object):
       self.pool_layers.append(i * pool_distance - 1)
     self.w_emb = tf.get_variable("w_out", [10000, self.out_filters])
 
-  def _get_strides(self, stride):
-    return [1, 1, stride]
 
   def _factorized_reduction(self, x, out_filters, stride, is_training):
     """Reduces the shape of x without information loss due to striding."""
@@ -248,13 +246,12 @@ class GeneralChild(object):
         return x
 
     actual_data_format = "channels_first"  # only support NCHW
-    stride_spec = self._get_strides(stride)
+    #stride_spec = self._get_strides(stride)
     # Skip path 1
-    print("Skip path 1", x.shape)
     path1 = tf.layers.max_pooling1d(
-      x, 1, stride_spec, "VALID", data_format=actual_data_format)
+      x, 1, stride, "VALID", data_format=actual_data_format)
     #path1 = tf.nn.max_pool(x, [1, 1, 1], stride_spec, "VALID", data_format="NCHW")
-    print("after max_pool:", path1.shape)
+    #print("after max_pool:", path1.shape)
 
     with tf.variable_scope("path1_conv"):
       path1 = _conv_opt(path1, 1, out_filters // 2)
@@ -274,7 +271,7 @@ class GeneralChild(object):
         concat_axis = 2
 
     path2 = tf.layers.max_pooling1d(
-      path2, 1, stride_spec, "VALID", data_format=actual_data_format)
+      path2, 1, stride, "VALID", data_format=actual_data_format)
     #path2 = tf.nn.max_pool(path2, [1, 1, 1], stride_spec, "VALID", data_format=self.data_format)
     with tf.variable_scope("path2_conv"):
       path2 = _conv_opt(path2, 1, out_filters // 2)
@@ -468,6 +465,7 @@ class GeneralChild(object):
 
       out_filters = self.out_filters
       with tf.variable_scope("init_conv"):  # adjust out_filter dimension
+        #print("init_x", x.shape)
         x = _conv_opt(x, 1, self.out_filters)
         x = batch_norm(x, is_training)
 
