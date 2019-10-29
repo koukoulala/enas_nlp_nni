@@ -17,7 +17,7 @@ tuner:
     controller_steps: 50
 
 trial:
-  command: sh ./run_search_arc_multi_path.sh
+  command: sh ./scripts/run_search_try.sh
   codeDir: ./
   gpuNum: 1
   nasMode: enas_mode

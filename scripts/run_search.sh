@@ -2,7 +2,7 @@
 set -e
 export PYTHONPATH="$(pwd)"
 
-python3 ./nni_child_model/entry.py \
+python3 ../nni_child_model/entry.py \
   --train_ratio=1.0 \
   --valid_ratio=1.0 \
   --embedding_model="glove" \
@@ -14,7 +14,7 @@ python3 ./nni_child_model/entry.py \
   --child_lr_decay_scheme="cosine" \
   --search_for="macro" \
   --reset_output_dir \
-  --data_path="data/sst" \
+  --data_path="../data/sst" \
   --dataset="sst" \
   --class_num=5 \
   --pool_step=4 \

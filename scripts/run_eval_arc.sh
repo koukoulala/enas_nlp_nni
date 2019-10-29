@@ -2,10 +2,10 @@
 set -e
 export PYTHONPATH="$(pwd)"
 
-python3 ./nni_child_model/entry.py \
+python3 ../nni_child_model/entry.py \
   --train_ratio=1.0 \
   --valid_ratio=1.0 \
-  --embedding_model="none" \
+  --embedding_model="glove" \
   --multi_path \
   --min_count=1 \
   --is_mask \
@@ -14,7 +14,7 @@ python3 ./nni_child_model/entry.py \
   --child_lr_decay_scheme="cosine" \
   --search_for="macro" \
   --reset_output_dir \
-  --data_path="./data/sst_test" \
+  --data_path="../data/sst" \
   --dataset="sst" \
   --class_num=5 \
   --pool_step=4 \
@@ -23,7 +23,7 @@ python3 ./nni_child_model/entry.py \
   --max_input_length=32 \
   --output_dir="outputs" \
   --train_data_size=45000 \
-  --batch_size=16 \
+  --batch_size=128 \
   --num_epochs=150 \
   --log_every=50 \
   --eval_every_epochs=1 \

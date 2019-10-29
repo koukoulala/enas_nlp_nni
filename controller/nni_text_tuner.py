@@ -178,9 +178,10 @@ class RLTuner(Tuner):
             self.controller_ops["baseline"],
             self.controller_ops["skip_rate"],
             self.controller_ops["train_op"],
+            self.controller_ops["sample_arc"],
         ]
 
-        loss, entropy, lr, gn, val_acc, bl, _, _ = self.sess.run(run_ops, feed_dict={
+        loss, entropy, lr, gn, val_acc, bl, _, _, sample_arc = self.sess.run(run_ops, feed_dict={
             self.controller_model.valid_acc: valid_acc_arr})
 
         controller_step = self.sess.run(self.controller_ops["train_step"])
@@ -194,6 +195,8 @@ class RLTuner(Tuner):
         log_string += " acc={:<6.4f}".format(val_acc)
         log_string += " bl={:<5.2f}".format(bl)
         log_string += " child acc={:<5.2f}".format(valid_acc_arr)
+        log_string += " sample_arc=" + sample_arc
+
         logger.debug(log_string)
         return
 
