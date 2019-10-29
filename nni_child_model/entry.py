@@ -11,7 +11,7 @@ import gensim.models.keyedvectors as word2vec
 import logging
 
 from nni_child_model.data.data_utils import read_data_sst
-from nni_child_model.general_child import GeneralChild
+from nni_child_model.nni_child import GeneralChild
 from commons.flags import FLAGS
 
 
