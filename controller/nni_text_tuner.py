@@ -98,6 +98,7 @@ class RLTuner(Tuner):
 
         self.epoch = 0
         self.pos = 0
+        self.parameter_to_arc = dict()
 
     def generate_parameters(self, parameter_id, trial_job_id=None):
         current_arc_code = self.sess.run(self.controller_model.sample_arc)
@@ -111,6 +112,7 @@ class RLTuner(Tuner):
         current_config = {
             self.choice_key: 'train' if self.pos < self.child_steps else 'validate'
         }
+        self.parameter_to_arc[parameter_id] = current_arc_code
         print("current_arc_code", current_arc_code)
         for layer_id, (layer_name, info) in enumerate(self.search_space):
             mutable_block = info['mutable_block']
@@ -203,6 +205,7 @@ class RLTuner(Tuner):
         logger.debug("pos:\t"+str(self.pos))
         logger.debug(parameter_id)
         logger.debug(reward)
+        logger.info(self.parameter_to_arc[parameter_id], reward)
         if self.pos > self.child_steps:
             self.controller_one_step(self.epoch, reward)
 

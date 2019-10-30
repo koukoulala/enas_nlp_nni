@@ -145,7 +145,7 @@ def get_session(sess):
   return session
 
 
-def train(doc, labels, datasets, embedding, pre_idxs=[]):
+def train(doc, labels, datasets, embedding):
 
   g = tf.Graph()
   with g.as_default():
@@ -302,139 +302,17 @@ def train(doc, labels, datasets, embedding, pre_idxs=[]):
                     need_decay_lr = True
 
               if acc > best_acc:
-                report_metric = acc
                 best_acc = acc
                 save_path = os.path.join(best_valid_ckpt_dir, best_valid_ckpt_file)
                 best_ckpt_saver.save(get_session(sess), save_path)
                 print("Found better model at: {}".format(global_step))
             else:
-              if FLAGS.search_hparam:
-                report_metric = ops["eval_func"](sess, "valid")
-              elif FLAGS.child_fixed_arc is None:
-                ops["eval_func"](sess, "valid")
+              acc = ops["eval_func"](sess, "valid")
 
             ops["eval_func"](sess, "test") # always evaluate test data
 
           if epoch >= FLAGS.num_epochs:
             break
-
-  """ train valid data and eval test """
-
-  def train_valid(num_epochs, lr, checkpoint_dir, global_step, output_dir):
-    assert os.path.isdir(checkpoint_dir), "Invalid checkpoint path {}".format(checkpoint_dir)
-
-    timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-
-    output_dir = output_dir + '_trainval_' + timestamp
-
-    if not os.path.isdir(output_dir):
-      print("Path {} does not exist. Creating.".format(output_dir))
-      os.makedirs(output_dir)
-    else:
-      print("Path {} exists. Remove and remake.".format(output_dir))
-      shutil.rmtree(output_dir, ignore_errors=True)
-      os.makedirs(output_dir)
-
-    g = tf.Graph()
-    with g.as_default():
-      images_trainval = np.vstack((images["train"], images["valid"]))
-      bow_images_trainval = np.vstack((images["train_bow_ids"], images["valid_bow_ids"]))
-      labels_trainval = np.concatenate((labels["train"], labels["valid"]))
-      datasets_trainval = np.concatenate((datasets["train"], datasets["valid"]))
-      with tf.device("/cpu:0"):
-        images_train = tf.placeholder(images_trainval.dtype,
-                                      [None, images_trainval.shape[1]], name="images_train")
-        bow_images_train = tf.placeholder(bow_images_trainval.dtype,
-                                          [None, bow_images_trainval.shape[1]], name="bow_images_train")
-        labels_train = tf.placeholder(labels_trainval.dtype,
-                                      [None], name="labels_train")
-        datasets_train = tf.placeholder(datasets_trainval.dtype,
-                                        [None], name="datasets_train")
-
-      child_model, controller_model = get_model(images_train, bow_images_train,
-                                                labels_train, datasets_train, images, labels, datasets, embedding,
-                                                num_layers, pre_idxs, FLAGS=FLAGS)
-
-      ops = get_ops(child_model, controller_model, FLAGS=FLAGS)
-      child_ops = ops["child"]
-
-      saver = tf.train.Saver(max_to_keep=3)
-
-      num_epoch_iters = child_ops["num_train_batches"] + child_ops["num_valid_batches"]
-
-      checkpoint_saver_hook = tf.train.CheckpointSaverHook(
-        output_dir, save_steps=num_epoch_iters, saver=saver)
-
-      ops["eval_every"] = num_epoch_iters * FLAGS.eval_every_epochs
-
-      hooks = [checkpoint_saver_hook]
-
-      print("-" * 80)
-      print("Starting session")
-      config = tf.ConfigProto(allow_soft_placement=True)
-      with tf.train.SingularMonitoredSession(
-              config=config, hooks=hooks, checkpoint_dir=checkpoint_dir) as sess:
-        start_time = time.time()
-        sess.run(child_ops["train_batch_iterator"].initializer, feed_dict={
-          images_train: images_trainval,
-          bow_images_train: bow_images_trainval,
-          labels_train: labels_trainval,
-          datasets_train: datasets_trainval})
-        print("finish initializing training dataset iterator")
-
-        epoch = 0
-        ckpt_steps = sess.run(child_ops["global_step"])
-
-        while True:
-          run_ops = [
-            child_ops["loss"],
-            child_ops["lr"],
-            child_ops["grad_norm"],
-            child_ops["train_acc"],
-            child_ops["train_op"]
-          ]
-
-          loss, lr, gn, tr_acc, _ = sess.run(run_ops, feed_dict={child_ops["lr"]: lr})
-
-          increment_steps = sess.run(child_ops["global_step"]) - ckpt_steps
-          actual_global_step = global_step + increment_steps
-
-          actual_step = increment_steps
-
-          epoch = actual_step // num_epoch_iters
-
-          curr_time = time.time()
-
-          if actual_global_step % FLAGS.log_every == 0:
-            log_string = ""
-            log_string += "epoch={:<6d}".format(epoch)
-            log_string += "ch_step={:<6d}".format(actual_global_step)
-            log_string += " loss={:<8.6f}".format(loss)
-            log_string += " lr={:<8.4f}".format(lr)
-            log_string += " |g|={:<8.4f}".format(gn)
-            log_string += " tr_acc={:<3d}/{:>3d}".format(
-              tr_acc, FLAGS.batch_size)
-            log_string += " mins={:<10.2f}".format(
-              float(curr_time - start_time) / 60)
-            print(log_string)
-
-          if actual_step % ops["eval_every"] == 0:
-            ops["eval_func"](sess, "test", global_step=actual_global_step)
-
-          if epoch >= num_epochs:
-            break
-
-        # final eval
-        acc = ops["eval_func"](sess, "test", global_step=actual_global_step)
-        return acc
-
-
-  if FLAGS.child_lr_decay_scheme == "auto":
-    return train_valid(num_epochs=6,
-                       lr=child_lr,
-                       checkpoint_dir=best_valid_ckpt_dir,
-                       global_step=global_step,
-                       output_dir=FLAGS.output_dir)
 
 def main():
   print("-" * 80)

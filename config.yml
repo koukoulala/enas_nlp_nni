@@ -15,10 +15,10 @@ tuner:
   classArgs:
     child_steps: 350
     controller_steps: 50
-
 trial:
   command: sh ./scripts/run_search_try.sh
   codeDir: ./
   gpuNum: 1
   nasMode: enas_mode
-
+localConfig:
+  useActiveGpu: true
