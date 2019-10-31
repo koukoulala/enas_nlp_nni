@@ -184,17 +184,24 @@ class NASTrial():
       cur_valid_acc = self.sess.run(self.child_model.cur_valid_acc)
       return cur_valid_acc
 
+  def get_sample_arc(self):
+      cur_valid_acc = self.sess.run(self.child_model.cur_valid_acc)
+      return cur_valid_acc
+
   def run(self, num):
       for _ in range(num):
           """@nni.get_next_parameter(self.sess)"""
           #"""@nni.training_update(tf=tf, session=self.sess)"""
-          """@nni.variable(nni.choice('train', 'validate'), name=entry)"""
+          """@nni.variable(nni.choice('train', 'validate', 'sample'), name=entry)"""
           entry = 'trian'
           if entry == 'train':
               loss, _ = self.run_one_step()
               '''@nni.report_final_result(loss)'''
           elif entry == 'validate':
               valid_acc_arr = self.get_csvaa()
+              '''@nni.report_final_result(valid_acc_arr)'''
+          elif entry == 'sample':
+              valid_acc_arr = self.get_sample_arc()
               '''@nni.report_final_result(valid_acc_arr)'''
           else:
               raise RuntimeError('No such entry: ' + entry)

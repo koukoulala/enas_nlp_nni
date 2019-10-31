@@ -76,10 +76,11 @@ def get_controller_ops(controller_model):
 
 class RLTuner(Tuner):
 
-    def __init__(self, child_steps, controller_steps):
+    def __init__(self, child_steps, controller_steps, sample_step):
 
         self.child_steps = child_steps
         self.controller_steps = controller_steps
+        self.sample_step = sample_step
         self.controller_model = build_controller(GeneralController)
 
         self.graph = tf.Graph()
@@ -109,9 +110,13 @@ class RLTuner(Tuner):
         for i in range(len_layers):
             final_flags[i] = 1
 
-        current_config = {
-            self.choice_key: 'train' if self.pos < self.child_steps else 'validate'
-        }
+        if self.pos < self.child_steps:
+            current_config = {self.choice_key: 'train'}
+        elif self.pos >= self.child_steps and self.pos < self.child_steps + self.controller_ops:
+            current_config = {self.choice_key: 'validate'}
+        else:
+            current_config = {self.choice_key: 'sample'}
+
         self.parameter_to_arc[parameter_id] = current_arc_code
         print("current_arc_code", current_arc_code)
         for layer_id, (layer_name, info) in enumerate(self.search_space):
@@ -164,7 +169,7 @@ class RLTuner(Tuner):
                 real_layer_idx += 1
 
         # update pos and epoch
-        self.pos = (self.pos + 1) % (self.child_steps + self.controller_steps)
+        self.pos = (self.pos + 1) % (self.child_steps + self.controller_steps + self.sample_step)
         self.epoch += int(self.pos == 0)
 
         return current_config
@@ -204,11 +209,14 @@ class RLTuner(Tuner):
         logger.debug("epoch:\t"+str(self.epoch))
         logger.debug("pos:\t"+str(self.pos))
         logger.debug("parameter_id:\t"+str(parameter_id))
-        logger.debug("reward:\t"+str(reward))
-        logger.debug("arc:")
-        logger.debug(self.parameter_to_arc[parameter_id])
-        if self.pos > self.child_steps:
+        if self.pos >= self.child_steps and self.pos < (self.child_steps + self.controller_steps):
             self.controller_one_step(self.epoch, reward)
+        elif self.pos >= (self.child_steps + self.controller_steps):
+            arc = ' '.join(self.parameter_to_arc[parameter_id])
+            log_string = ""
+            log_string += "arc:\t" + arc
+            log_string += "\treward:\t" + str(reward)
+            logger.debug(log_string)
 
     def update_search_space(self, data):
         # Extract choice
@@ -227,6 +235,7 @@ class RLTuner(Tuner):
             for layer_id, info in data[block_id].items():
                 info['mutable_block'] = block_id
                 self.search_space.append((layer_id, info))
+        logger.debug("self.search_space")
         logger.debug(self.search_space)
 
 
