@@ -112,7 +112,7 @@ class RLTuner(Tuner):
 
         if self.pos < self.child_steps:
             current_config = {self.choice_key: 'train'}
-        elif self.pos >= self.child_steps and self.pos < self.child_steps + self.controller_ops:
+        elif self.pos >= self.child_steps and self.pos < self.child_steps + self.controller_steps:
             current_config = {self.choice_key: 'validate'}
         else:
             current_config = {self.choice_key: 'sample'}
@@ -209,10 +209,10 @@ class RLTuner(Tuner):
         logger.debug("epoch:\t"+str(self.epoch))
         logger.debug("pos:\t"+str(self.pos))
         logger.debug("parameter_id:\t"+str(parameter_id))
-        if self.pos >= self.child_steps and self.pos < (self.child_steps + self.controller_steps):
+        if self.pos > self.child_steps and self.pos <= (self.child_steps + self.controller_steps):
             self.controller_one_step(self.epoch, reward)
-        elif self.pos >= (self.child_steps + self.controller_steps):
-            arc = ' '.join(self.parameter_to_arc[parameter_id])
+        elif self.pos > (self.child_steps + self.controller_steps):
+            arc = ' '.join(str(self.parameter_to_arc[parameter_id]))
             log_string = ""
             log_string += "arc:\t" + arc
             log_string += "\treward:\t" + str(reward)

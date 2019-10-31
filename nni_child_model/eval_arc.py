@@ -6,7 +6,6 @@ import os
 import shutil
 import time
 import tensorflow as tf
-import gensim.models.keyedvectors as word2vec
 import logging
 import numpy as np
 
