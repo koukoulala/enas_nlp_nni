@@ -234,6 +234,8 @@ class GeneralChild(object):
       self.pool_layers.append(i * pool_distance - 1)
     self.w_emb = tf.get_variable("w_out", [10000, self.out_filters])
 
+    fixed_arc = np.array([int(x) for x in self.fixed_arc.split(" ") if x])
+    self.sample_arc = fixed_arc
 
   def _factorized_reduction(self, x, out_filters, stride, is_training):
     """Reduces the shape of x without information loss due to striding."""
@@ -761,5 +763,113 @@ class GeneralChild(object):
       print("Error in calculating final_acc")
 
     return final_acc
+
+
+  # override
+  def _build_train(self):
+      self._build_train_cat()
+
+  def _build_train_cat(self):
+      print("-" * 80)
+      print("Build train graph")
+      x_train = self.x_train
+      logits = self._model(x_train, self.x_bow_train, self.d_train,
+                           is_training=True)
+      log_probs = tf.nn.sparse_softmax_cross_entropy_with_logits(
+          logits=logits, labels=self.y_train)
+      self.loss = tf.reduce_mean(log_probs)
+
+      self.train_preds = tf.argmax(logits, axis=1)
+      self.train_preds = tf.to_int32(self.train_preds)
+      self.train_acc = tf.equal(self.train_preds, self.y_train)
+      self.train_acc = tf.to_int32(self.train_acc)
+      self.train_acc = tf.reduce_sum(self.train_acc)
+
+      tf_variables = [var
+                      for var in tf.trainable_variables() if var.name.startswith(self.name)]
+      self.num_vars = count_model_params(tf_variables)
+      print("Model has {} params".format(self.num_vars))
+
+      self.global_step = tf.Variable(
+          0, dtype=tf.int32, trainable=False, name="global_step")
+
+      if self.lr_decay_scheme == "auto":
+          self.step_value = tf.placeholder(tf.int32, shape=(), name="step_value")
+          self.assign_global_step = self.global_step.assign(self.step_value)
+
+      self.train_op, self.lr, self.grad_norm, self.optimizer = get_train_ops(
+          self.loss,
+          tf_variables,
+          self.global_step,
+          clip_mode=self.clip_mode,
+          grad_bound=self.grad_bound,
+          l2_reg=self.l2_reg,
+          lr_warmup_val=self.lr_warmup_val,
+          lr_warmup_steps=self.lr_warmup_steps,
+          lr_model_d=self.lr_model_d,
+          lr_init=self.lr_init,
+          lr_dec_start=self.lr_dec_start,
+          lr_dec_every=self.lr_dec_every,
+          lr_dec_rate=self.lr_dec_rate,
+          lr_decay_scheme=self.lr_decay_scheme,
+          lr_max=self.lr_max,
+          lr_min=self.lr_min,
+          lr_T_0=self.lr_T_0,
+          lr_T_mul=self.lr_T_mul,
+          num_train_batches=self.num_train_batches,
+          optim_algo=self.optim_algo,
+          lr_decay_epoch_multiplier=self.lr_decay_epoch_multiplier)
+
+  # override
+  def _build_valid(self):
+      if self.x_valid is not None:
+          print("-" * 80)
+          print("Build valid graph")
+          x_valid = self.x_valid
+          logits = self._model(x_valid, self.x_bow_valid, self.d_valid, False, reuse=True, mode="valid")
+          self.valid_preds = tf.argmax(logits, axis=1)
+          self.valid_preds = tf.to_int32(self.valid_preds)
+          self.valid_acc = tf.equal(self.valid_preds, self.y_valid)
+          self.valid_acc = tf.to_int32(self.valid_acc)
+          self.valid_acc = tf.reduce_sum(self.valid_acc)
+
+  # override
+  def _build_test(self):
+      print("-" * 80)
+      print("Build test graph")
+      x_test = self.x_test
+      logits = self._model(x_test, self.x_bow_test, self.d_test, False, reuse=True)
+      self.test_preds = tf.argmax(logits, axis=1)
+      self.test_preds = tf.to_int32(self.test_preds)
+      self.test_acc = tf.equal(self.test_preds, self.y_test)
+      self.test_acc = tf.to_int32(self.test_acc)
+      self.test_acc = tf.reduce_sum(self.test_acc)
+
+  # override
+  def _build_valid_rl(self, shuffle=False):
+      print("-" * 80)
+      print("Build valid graph on shuffled data")
+      with tf.device("/cpu:0"):
+          # shuffled valid data: for choosing validation model
+          valid_original = self.doc["valid_original"]
+          valid_bow_original = self.doc["valid_bow_ids_original"]
+          x_valid_shuffle, x_bow_valid_shuffle, y_valid_shuffle, d_valid_shuffle = tf.train.shuffle_batch(
+              [valid_original, valid_bow_original, self.labels["valid_original"], self.datasets["valid_original"]],
+              batch_size=self.batch_size,
+              capacity=25000,
+              enqueue_many=True,
+              min_after_dequeue=0,
+              num_threads=16,
+              seed=self.seed,
+              allow_smaller_final_batch=True,
+          )
+
+      logits = self._model(x_valid_shuffle, x_bow_valid_shuffle, d_valid_shuffle, False, reuse=True, mode="valid")
+      valid_shuffle_preds = tf.argmax(logits, axis=1)
+      valid_shuffle_preds = tf.to_int32(valid_shuffle_preds)
+      self.valid_shuffle_acc = tf.equal(valid_shuffle_preds, y_valid_shuffle)
+      self.valid_shuffle_acc = tf.to_int32(self.valid_shuffle_acc)
+      self.valid_shuffle_acc = tf.reduce_sum(self.valid_shuffle_acc)
+
 
 
