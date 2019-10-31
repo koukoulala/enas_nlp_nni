@@ -203,9 +203,10 @@ class RLTuner(Tuner):
     def receive_trial_result(self, parameter_id, parameters, reward, trial_job_id):
         logger.debug("epoch:\t"+str(self.epoch))
         logger.debug("pos:\t"+str(self.pos))
-        logger.debug(parameter_id)
-        logger.debug(reward)
-        logger.info(self.parameter_to_arc[parameter_id], reward)
+        logger.debug("parameter_id:\t"+str(parameter_id))
+        logger.debug("reward:\t"+str(reward))
+        logger.debug("arc:")
+        logger.debug(self.parameter_to_arc[parameter_id])
         if self.pos > self.child_steps:
             self.controller_one_step(self.epoch, reward)
 

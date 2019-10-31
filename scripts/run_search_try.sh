@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+export PYTHONPATH="$(pwd)"
 
 python3 ./nni_child_model/entry.py \
   --train_ratio=1.0 \

@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e
-cd ../
 export PYTHONPATH="$(pwd)"
 
 python3 ./nni_child_model/entry.py \
