@@ -8,7 +8,7 @@ from nni.tuner import Tuner
 from commons.flags import *
 from controller.rl_controller import GeneralController
 from collections import OrderedDict
-
+import numpy as np
 
 def build_logger(log_name):
     logger = logging.getLogger(log_name)
@@ -100,12 +100,14 @@ class RLTuner(Tuner):
         self.epoch = 0
         self.pos = 0
         self.parameter_to_arc = dict()
+        self.len_layers = 12
 
     def generate_parameters(self, parameter_id, trial_job_id=None):
         current_arc_code = self.sess.run(self.controller_model.sample_arc)
         start_idx = 0
         real_layer_idx = 0
         len_layers = int(len(self.search_space)/2)
+        self.len_layers = len_layers
         final_flags = {}
         for i in range(len_layers):
             final_flags[i] = 1
@@ -212,11 +214,22 @@ class RLTuner(Tuner):
         if self.pos > self.child_steps and self.pos <= (self.child_steps + self.controller_steps):
             self.controller_one_step(self.epoch, reward)
         elif self.pos > (self.child_steps + self.controller_steps):
-            arc = ' '.join(str(self.parameter_to_arc[parameter_id]))
+            arc = self.parameter_to_arc[parameter_id]
+            arc_str = " ".join(str(v) for v in arc)
             log_string = ""
-            log_string += "arc:\t" + arc
+            log_string += "arc:\t" + arc_str
             log_string += "\treward:\t" + str(reward)
             logger.debug(log_string)
+
+            arc = [int(i) for i in arc_str.split(' ')]
+            start = 0
+            for layer_id in range(self.len_layers):
+                end = start + 1 + layer_id
+                end += 1
+                out_str = "fixed_arc=\"$fixed_arc {0}\"".format(np.reshape(arc[start: end], [-1]))
+                out_str = out_str.replace("[", "").replace("]", "")
+                logger.debug(out_str)
+                start = end
 
     def update_search_space(self, data):
         # Extract choice
