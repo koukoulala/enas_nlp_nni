@@ -118,6 +118,11 @@ def get_ops(child_model):
     "train_batch_iterator": child_model.train_batch_iterator,
     "valid_lengths": child_model.valid_lengths
   }
+  
+  if FLAGS.child_lr_decay_scheme == "auto":
+    child_ops["num_valid_batches"] = child_model.num_valid_batches
+    child_ops["step_value"] = child_model.step_value
+    child_ops["assign_global_step"] = child_model.assign_global_step
 
   if FLAGS.child_lr_decay_scheme == "auto":
     child_ops["num_valid_batches"] = child_model.num_valid_batches
