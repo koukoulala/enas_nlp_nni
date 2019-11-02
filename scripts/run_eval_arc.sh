@@ -2,7 +2,7 @@
 set -e
 export PYTHONPATH="$(pwd)"
 
-python3 ./nni_child_model/entry.py \
+python3 ./nni_child_model/eval_arc.py \
   --train_ratio=1.0 \
   --valid_ratio=1.0 \
   --embedding_model="glove" \
