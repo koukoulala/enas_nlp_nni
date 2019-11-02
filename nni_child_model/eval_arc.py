@@ -39,10 +39,6 @@ def get_model(images_train, bow_images_train, labels_train, datasets_train,
 
   ChildClass = GeneralChild
 
-  if FLAGS.search_hparam:
-    assert FLAGS.child_fixed_arc is not None, \
-           "Please specify --fixed_arc if search for hyper parameters."
-
   child_model = ChildClass(
     images_train,
     bow_images_train,
@@ -100,8 +96,7 @@ def get_model(images_train, bow_images_train, labels_train, datasets_train,
     is_output_attention=FLAGS.is_output_attention,
     field_embedding=FLAGS.field_embedding,
     input_field_embedding=FLAGS.input_field_embedding,
-    sliding_window=FLAGS.sliding_window,
-    seed=1234 if FLAGS.fixed_seed else None
+    sliding_window=FLAGS.sliding_window
   )
 
   return child_model
@@ -109,6 +104,7 @@ def get_model(images_train, bow_images_train, labels_train, datasets_train,
 
 def get_ops(child_model):
 
+  child_model.build_model()
   child_ops = {
     "global_step": child_model.global_step,
     "loss": child_model.loss,
@@ -122,10 +118,6 @@ def get_ops(child_model):
     "train_batch_iterator": child_model.train_batch_iterator,
     "valid_lengths": child_model.valid_lengths
   }
-  if FLAGS.child_lr_decay_scheme == "auto":
-    child_ops["num_valid_batches"] = child_model.num_valid_batches
-    child_ops["step_value"] = child_model.step_value
-    child_ops["assign_global_step"] = child_model.assign_global_step
 
   ops = {
     "child": child_ops,
@@ -313,7 +305,7 @@ def train(doc, labels, datasets, embedding):
           if epoch >= FLAGS.num_epochs:
             break
 
-def main():
+def main(_):
   print("-" * 80)
 
   if not os.path.isdir(FLAGS.output_dir):

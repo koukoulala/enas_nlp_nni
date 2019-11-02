@@ -697,74 +697,6 @@ class GeneralChild(object):
 
       return out
 
-  def eval_once(self, sess, eval_set, feed_dict=None, verbose=False, global_step=None):
-    """Expects self.acc and self.global_step to be defined.
-
-    Args:
-      sess: tf.Session() or one of its wrap arounds.
-      feed_dict: can be used to give more information to sess.run().
-      eval_set: "valid" or "test"
-    """
-
-    if global_step is None:
-      assert self.global_step is not None
-      global_step = sess.run(self.global_step)
-    print("Eval at {}".format(global_step))
-
-    if eval_set == "valid":
-      assert self.x_valid is not None
-      assert self.valid_acc is not None
-      num_examples = self.num_valid_examples
-      num_batches = self.num_valid_batches
-      acc_op = self.valid_acc
-      sess.run(self.valid_batch_iterator.initializer, feed_dict={
-          self.doc_valid: self.doc["valid"],
-          self.bow_doc_valid: self.doc["valid_bow_ids"],
-          self.labels_valid: self.labels["valid"],
-          self.datasets_valid: self.datasets["valid"]
-      })
-    elif eval_set == "test":
-      assert self.test_acc is not None
-      num_examples = self.num_test_examples
-      num_batches = self.num_test_batches
-      acc_op = self.test_acc
-      sess.run(self.test_batch_iterator.initializer, feed_dict={
-          self.doc_test: self.doc["test"],
-          self.bow_doc_test: self.doc["test_bow_ids"],
-          self.labels_test: self.labels["test"],
-          self.datasets_test: self.datasets["test"]
-      })
-    else:
-      raise NotImplementedError("Unknown eval_set '{}'".format(eval_set))
-
-    total_acc = 0
-    total_exp = 0
-    batch_id = 0
-    while True:
-      try:
-        acc = sess.run(acc_op, feed_dict=feed_dict)
-        total_acc += acc
-        if (batch_id + 1) == num_batches and num_examples % self.eval_batch_size != 0:
-          total_exp += num_examples % self.eval_batch_size
-        else:
-          total_exp += self.eval_batch_size
-        if verbose:
-          sys.stdout.write("\r{:<5d}/{:>5d}".format(total_acc, total_exp))
-        batch_id += 1
-      except tf.errors.OutOfRangeError:
-        break
-    if verbose:
-      print("")
-    if total_exp > 0:
-      final_acc = float(total_acc) / total_exp
-      print("{}_accuracy: {:<6.4f}".format(eval_set, final_acc))
-    else:
-      final_acc = 0
-      print("Error in calculating final_acc")
-
-    return final_acc
-
-
   # override
   def _build_train(self):
       self._build_train_cat()
@@ -871,5 +803,76 @@ class GeneralChild(object):
       self.valid_shuffle_acc = tf.to_int32(self.valid_shuffle_acc)
       self.valid_shuffle_acc = tf.reduce_sum(self.valid_shuffle_acc)
 
+  def build_model(self):
 
+    self._build_train()
+    self._build_valid()
+    self._build_test()
+
+  def eval_once(self, sess, eval_set, feed_dict=None, verbose=False, global_step=None):
+    """Expects self.acc and self.global_step to be defined.
+
+    Args:
+      sess: tf.Session() or one of its wrap arounds.
+      feed_dict: can be used to give more information to sess.run().
+      eval_set: "valid" or "test"
+    """
+
+    if global_step is None:
+      assert self.global_step is not None
+      global_step = sess.run(self.global_step)
+    print("Eval at {}".format(global_step))
+
+    if eval_set == "valid":
+      assert self.x_valid is not None
+      assert self.valid_acc is not None
+      num_examples = self.num_valid_examples
+      num_batches = self.num_valid_batches
+      acc_op = self.valid_acc
+      sess.run(self.valid_batch_iterator.initializer, feed_dict={
+          self.doc_valid: self.doc["valid"],
+          self.bow_doc_valid: self.doc["valid_bow_ids"],
+          self.labels_valid: self.labels["valid"],
+          self.datasets_valid: self.datasets["valid"]
+      })
+    elif eval_set == "test":
+      assert self.test_acc is not None
+      num_examples = self.num_test_examples
+      num_batches = self.num_test_batches
+      acc_op = self.test_acc
+      sess.run(self.test_batch_iterator.initializer, feed_dict={
+          self.doc_test: self.doc["test"],
+          self.bow_doc_test: self.doc["test_bow_ids"],
+          self.labels_test: self.labels["test"],
+          self.datasets_test: self.datasets["test"]
+      })
+    else:
+      raise NotImplementedError("Unknown eval_set '{}'".format(eval_set))
+
+    total_acc = 0
+    total_exp = 0
+    batch_id = 0
+    while True:
+      try:
+        acc = sess.run(acc_op, feed_dict=feed_dict)
+        total_acc += acc
+        if (batch_id + 1) == num_batches and num_examples % self.eval_batch_size != 0:
+          total_exp += num_examples % self.eval_batch_size
+        else:
+          total_exp += self.eval_batch_size
+        if verbose:
+          sys.stdout.write("\r{:<5d}/{:>5d}".format(total_acc, total_exp))
+        batch_id += 1
+      except tf.errors.OutOfRangeError:
+        break
+    if verbose:
+      print("")
+    if total_exp > 0:
+      final_acc = float(total_acc) / total_exp
+      print("{}_accuracy: {:<6.4f}".format(eval_set, final_acc))
+    else:
+      final_acc = 0
+      print("Error in calculating final_acc")
+
+    return final_acc
 
