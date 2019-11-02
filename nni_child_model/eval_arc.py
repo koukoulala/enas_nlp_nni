@@ -118,6 +118,11 @@ def get_ops(child_model):
     "train_batch_iterator": child_model.train_batch_iterator,
     "valid_lengths": child_model.valid_lengths
   }
+  
+  if FLAGS.child_lr_decay_scheme == "auto":
+    child_ops["num_valid_batches"] = child_model.num_valid_batches
+    child_ops["step_value"] = child_model.step_value
+    child_ops["assign_global_step"] = child_model.assign_global_step
 
   ops = {
     "child": child_ops,
@@ -322,7 +327,7 @@ def main(_):
   print("-" * 80)
   log_file = os.path.join(FLAGS.output_dir, "stdout")
 
-  is_valid = False
+  is_valid = True
   word_id_dict, word_num_dict = {}, {}
 
   if FLAGS.dataset == 'sst':
