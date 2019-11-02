@@ -8,6 +8,7 @@ results/
 out/
 env/
 outputs/
+outputs_best_ckpt/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
