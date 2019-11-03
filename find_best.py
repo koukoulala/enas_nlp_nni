@@ -4,7 +4,8 @@ import pandas as pd
 import numpy as np
 
 nni_id = sys.argv[1]
-file_path = '~/nni/experiments/' + nni_id + 'log/RL_controller.log'
+#file_path = '~/nni/experiments/' + nni_id + '/log/RL_controller.log'
+file_path = '/home/yujwang/nni/experiments/okBoeRjw/log/RL_controller.log'
 os.environ['file_path'] = str(file_path)
 os.system("grep 'reward' $file_path > tmp.txt")
 
