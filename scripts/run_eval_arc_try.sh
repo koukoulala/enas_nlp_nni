@@ -2,9 +2,9 @@
 
 . ./scripts/arcs.sh
 
-echo $ARC_I
+echo $fixed_arc
 
-fixed_arc=${ARC_I}
+fixed_arc=${fixed_arc}
 
 set -e
 export PYTHONPATH="$(pwd)"
