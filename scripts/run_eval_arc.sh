@@ -30,7 +30,7 @@ python3 -u ./nni_child_model/eval_arc.py \
   --output_dir="outputs" \
   --train_data_size=45000 \
   --batch_size=128 \
-  --num_epochs=150 \
+  --num_epochs=10 \
   --log_every=50 \
   --eval_every_epochs=1 \
   --child_fixed_arc="${fixed_arc}" \
