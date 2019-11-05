@@ -12,6 +12,7 @@ os.system("grep 'reward' $file_path > tmp.txt")
 data = pd.read_csv("tmp.txt", header=None, sep='\t')
 data.columns = ['arc', 'arc_num', 'reward', 'reward_num']
 max_reward = data.ix[data['reward_num'].idxmax()]
+print("max_reward", max_reward)
 arc_str = max_reward['arc_num']
 
 fw = open("./scripts/arcs.sh", 'w')
