@@ -258,8 +258,6 @@ class GeneralChild(object):
     with tf.variable_scope("path1_conv"):
       path1 = _conv_opt(path1, 1, out_filters // 2)
 
-    print("after conv:", path1.shape)
-
     # Skip path 2
     # First pad with 0"s on the right and bottom, then shift the filter to
     # include those 0"s that were added.
