@@ -26,7 +26,7 @@ python3 -u ./nni_child_model/eval_arc.py \
   --pool_step=4 \
   --child_optim_algo="adam" \
   --data_type="text" \
-  --max_input_length=32 \
+  --max_input_length=64 \
   --output_dir="outputs" \
   --train_data_size=45000 \
   --batch_size=16 \
@@ -36,7 +36,7 @@ python3 -u ./nni_child_model/eval_arc.py \
   --child_fixed_arc="${fixed_arc}" \
   --child_use_aux_heads \
   --child_num_layers=12 \
-  --child_out_filters=32 \
+  --child_out_filters=64 \
   --child_l2_reg=0.00002 \
   --child_num_branches=8 \
   --child_start_branches=6 \
