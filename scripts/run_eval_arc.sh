@@ -57,7 +57,7 @@ python3 -u ./nni_child_model/eval_arc.py \
   --child_lr_decay_epoch_multiplier=1 \
   --child_lr_T_0=10 \
   --child_lr_T_mul=2 \
-  --child_lr_decay_scheme="auto" \
+  --child_lr_decay_scheme="cosine" \
   --nocontroller_training \
   --controller_search_whole_channels \
   --controller_train_steps=20 \
