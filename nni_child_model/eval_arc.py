@@ -118,11 +118,6 @@ def get_ops(child_model):
     "train_batch_iterator": child_model.train_batch_iterator,
     "valid_lengths": child_model.valid_lengths
   }
-  
-  if FLAGS.child_lr_decay_scheme == "auto":
-    child_ops["num_valid_batches"] = child_model.num_valid_batches
-    child_ops["step_value"] = child_model.step_value
-    child_ops["assign_global_step"] = child_model.assign_global_step
 
   if FLAGS.child_lr_decay_scheme == "auto":
     child_ops["num_valid_batches"] = child_model.num_valid_batches
@@ -191,18 +186,18 @@ def train(doc, labels, datasets, embedding):
       enable_decay = False
       decay_factors = [0.2, 0.2, 0.2, 0.2]
       decays_count = 0
-      best_valid_ckpt_dir = FLAGS.output_dir + '_best_ckpt'
-      best_valid_ckpt_file = "valid_best.ckpt"
-      best_ckpt_saver = tf.train.Saver(max_to_keep=1)
-      best_acc = 0.0
 
-      if not os.path.isdir(best_valid_ckpt_dir):
-        print("Path {} does not exist. Creating.".format(best_valid_ckpt_dir))
-        os.makedirs(best_valid_ckpt_dir)
-      else:
-        print("Path {} exists. Remove and remake.".format(best_valid_ckpt_dir))
-        shutil.rmtree(best_valid_ckpt_dir, ignore_errors=True)
-        os.makedirs(best_valid_ckpt_dir)
+    best_valid_ckpt_dir = FLAGS.output_dir + '_best_ckpt'
+    best_valid_ckpt_file = "valid_best.ckpt"
+    best_ckpt_saver = tf.train.Saver(max_to_keep=1)
+
+    if not os.path.isdir(best_valid_ckpt_dir):
+      print("Path {} does not exist. Creating.".format(best_valid_ckpt_dir))
+      os.makedirs(best_valid_ckpt_dir)
+    else:
+      print("Path {} exists. Remove and remake.".format(best_valid_ckpt_dir))
+      shutil.rmtree(best_valid_ckpt_dir, ignore_errors=True)
+      os.makedirs(best_valid_ckpt_dir)
 
     print("-" * 80)
     print("Starting session")
@@ -219,7 +214,7 @@ def train(doc, labels, datasets, embedding):
 
         epoch = 0
         threshold = -1
-        valid_acc = 0
+        best_acc = 0.0
         while True:
           run_ops = [
             child_ops["loss"],
@@ -302,13 +297,14 @@ def train(doc, labels, datasets, embedding):
                   if avg_acc_diff < 0: # decay when average acc drop
                     need_decay_lr = True
 
-              if acc > best_acc:
-                best_acc = acc
-                save_path = os.path.join(best_valid_ckpt_dir, best_valid_ckpt_file)
-                best_ckpt_saver.save(get_session(sess), save_path)
-                print("Found better model at: {}".format(global_step))
             else:
               acc = ops["eval_func"](sess, "valid")
+
+            if acc > best_acc:
+              best_acc = acc
+              save_path = os.path.join(best_valid_ckpt_dir, best_valid_ckpt_file)
+              best_ckpt_saver.save(get_session(sess), save_path)
+              print("Found better model at: {}".format(global_step))
 
             ops["eval_func"](sess, "test") # always evaluate test data
 
