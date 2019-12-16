@@ -3,5 +3,5 @@ nltk==3.5
 gensim==3.6.0
 tensorflow_gpu==1.12.0
 atlas==0.27.0
-tensorflow==1.12.0
+tensorflow==1.15.0
 nni==0.9.1.1
